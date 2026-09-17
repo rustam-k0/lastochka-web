@@ -8,9 +8,10 @@ const app = createApp(db, {
   staticDirectory: "dist",
 });
 const port = Number(process.env.PORT || 3001);
-const server = app.listen(port, process.env.HOST || "127.0.0.1", () => {
+const host = process.env.HOST || "0.0.0.0";
+const server = app.listen(port, host, () => {
   console.log(
-    `Ласточка: http://${process.env.HOST || "127.0.0.1"}:${port}; SQLite: ${filename}`,
+    `Ласточка: http://${host}:${port}; SQLite: ${filename}`,
   );
 });
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
