@@ -21,6 +21,7 @@ import {
   UserRound,
   Search,
   ShoppingBasket,
+  ChevronRight,
 } from "lucide-react";
 import { UIProvider, useUI } from "../shared/ui/UI";
 import Panels from "../features/Panels";
@@ -44,6 +45,20 @@ import Cart from "../pages/Cart";
 import s from "./App.module.css";
 import p from "../pages/Pages.module.css";
 const scrollPositions = new Map<string, number>();
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth >= 1024 : false,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    setIsDesktop(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isDesktop;
+}
+
 function Shell() {
   useWebMCP();
   useSyncExternalStore(catalog.subscribe, catalog.snapshot);
@@ -56,6 +71,12 @@ function Shell() {
         s.addresses.find((a) => a.id === s.activeAddressId) || null,
       ),
     );
+  const activeAddress = useShop((s) =>
+    s.addresses.find((a) => a.id === s.activeAddressId),
+  );
+  const favoritesCount = useShop((s) => s.favorites.length);
+  const cartTotalText = money(totals(cart, catalog.products(), promo).total);
+  const isDesktop = useIsDesktop();
   const first = useRef(true);
   const main = ["/", "/catalog", "/favorites", "/profile"].includes(
     location.pathname,
@@ -83,12 +104,83 @@ function Shell() {
   return (
     <>
       <main className={s.shell}>
-        <div className={s.desktopBrand}>
-          <img src="/images/logo.png" alt="" />
-          <span>
-            Ласточка<small>ДЖАМИ · МАГАЗИН</small>
-          </span>
-        </div>
+        {isDesktop && (
+          <header className={s.desktopHeader}>
+            <Link to="/" className={s.desktopBrand} aria-label="Ласточка">
+              <img src="/images/logo.png" alt="" />
+              <span>
+                Ласточка<small>ДЖАМИ · МАГАЗИН</small>
+              </span>
+            </Link>
+            <Link to="/catalog" className={s.desktopCatalogBtn}>
+              <Menu size={20} />
+              <span>Каталог</span>
+            </Link>
+            <Link
+              to="/search"
+              className={s.desktopSearch}
+              aria-label="Поиск по каталогу"
+            >
+              <Search size={18} color="#8e8e93" />
+              <span>Поиск по каталогу…</span>
+            </Link>
+            <button
+              className={s.desktopAddress}
+              onClick={() => open("addresses")}
+              aria-label={
+                activeAddress
+                  ? `${activeAddress.street}, ${activeAddress.house}`
+                  : "Указать адрес доставки"
+              }
+            >
+              <House size={18} color="#f21e1b" />
+              <div className={s.desktopAddressText}>
+                <small>Доставка</small>
+                <span>
+                  {activeAddress
+                    ? `${activeAddress.street}, ${activeAddress.house}`
+                    : "Указать адрес"}
+                </span>
+              </div>
+              <ChevronRight size={16} color="#8e8e93" />
+            </button>
+            <div className={s.desktopNav}>
+              <NavLink
+                to="/favorites"
+                className={({ isActive }) =>
+                  s.desktopNavItem + (isActive ? " " + s.desktopNavActive : "")
+                }
+                aria-label="Избранное"
+              >
+                <div className={s.desktopNavIconWrap}>
+                  <Heart size={20} />
+                  {favoritesCount > 0 && (
+                    <span className={s.desktopBadge}>{favoritesCount}</span>
+                  )}
+                </div>
+                <span>Избранное</span>
+              </NavLink>
+              <NavLink
+                to="/profile"
+                className={({ isActive }) =>
+                  s.desktopNavItem + (isActive ? " " + s.desktopNavActive : "")
+                }
+                aria-label="Профиль"
+              >
+                <UserRound size={20} />
+                <span>Профиль</span>
+              </NavLink>
+              <Link
+                to="/cart"
+                className={s.desktopCartBtn}
+                aria-label={"Корзина, " + cartTotalText}
+              >
+                <ShoppingBasket size={21} />
+                <span>{cartTotalText}</span>
+              </Link>
+            </div>
+          </header>
+        )}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/catalog" element={<Catalog />} />
@@ -104,7 +196,7 @@ function Shell() {
           <Route path="/orders/:id" element={<OrderDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-        {shopping && (
+        {shopping && !isDesktop && (
           <>
             <div className={s.floating}>
               <Link to="/search" className={s.searchFloat}>

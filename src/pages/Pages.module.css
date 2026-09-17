@@ -79,6 +79,18 @@
   position: relative;
   border-radius: 11px;
   overflow: hidden;
+  transition:
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s ease;
+}
+@media (hover: hover) {
+  .category:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(85, 37, 27, 0.1);
+  }
+  .category:hover img {
+    transform: scale(1.04);
+  }
 }
 .category span {
   display: block;
@@ -96,6 +108,7 @@
   width: 100%;
   height: 70%;
   object-fit: cover;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .category:nth-child(6) img {
   height: 58%;
@@ -791,5 +804,43 @@
   }
   .consent {
     margin-top: 8px;
+  }
+}
+@media (min-width: 1024px) {
+  .categories {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .favoritesEmpty {
+    height: auto;
+    min-height: 520px;
+    justify-content: center;
+    padding: 60px var(--space);
+  }
+  .profile {
+    max-width: 960px;
+    padding: 36px var(--space) 60px;
+  }
+  .catalogTop {
+    min-height: 90px;
+    padding: 24px var(--space);
+    flex-direction: row;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .catalogTop p {
+    text-align: left;
+    font-size: 16px;
+  }
+}
+@media (hover: hover) {
+  .userCard:hover,
+  .bonusCard:hover,
+  .profileAction:hover,
+  .savedAddress:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(85, 37, 27, 0.06);
+    background: #eaeaea;
   }
 }

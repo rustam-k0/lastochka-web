@@ -118,15 +118,18 @@
   text-align: left;
   padding: 0;
   background: var(--gray);
+  transition:
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s ease;
 }
-.collection h3 {
-  position: absolute;
-  top: 15px;
-  left: 16px;
-  right: 9px;
-  z-index: 1;
-  font-size: 19px;
-  line-height: 1.13;
+@media (hover: hover) {
+  .collection:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(85, 37, 27, 0.12);
+  }
+  .collection:hover img {
+    transform: scale(1.04);
+  }
 }
 .collection img {
   position: absolute;
@@ -135,6 +138,7 @@
   width: 100%;
   height: 72%;
   object-fit: cover;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .collection:active {
   transform: scale(0.98);
@@ -204,6 +208,9 @@
 .cartFloat svg {
   color: var(--red);
 }
+.desktopHeader {
+  display: none;
+}
 .desktopBrand {
   display: none;
 }
@@ -211,27 +218,6 @@
   .shell {
     box-shadow: 0 0 60px #55251b0c;
     min-height: 100dvh;
-  }
-  .desktopBrand {
-    display: flex;
-    padding: 16px var(--space);
-    gap: 10px;
-    align-items: center;
-    color: #801313;
-    font-size: 22px;
-    font-weight: 750;
-  }
-  .desktopBrand img {
-    width: 37px;
-    border-radius: 10px;
-  }
-  .desktopBrand small {
-    display: block;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: #777;
-    font-weight: 500;
-    margin-top: 3px;
   }
 }
 @media (min-width: 560px) {
@@ -253,6 +239,217 @@
   }
   .addressRow {
     margin-bottom: 0;
+  }
+}
+@media (min-width: 1024px) {
+  .desktopHeader {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1.2vw, 16px);
+    padding: 10px var(--space);
+    background: white;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    border-bottom: 1px solid #f0eae4;
+    box-shadow: 0 4px 16px rgba(85, 37, 27, 0.04);
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .desktopBrand {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    color: #801313;
+    font-size: 20px;
+    font-weight: 750;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .desktopBrand img {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+  .desktopBrand small {
+    display: none;
+  }
+  .desktopCatalogBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--red);
+    color: white;
+    padding: 8px 14px;
+    border-radius: var(--round);
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition:
+      transform 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .desktopCatalogBtn:hover {
+    background: #d61815;
+    transform: translateY(-1px);
+  }
+  .desktopSearch {
+    flex: 1;
+    min-width: 120px;
+    max-width: 360px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--gray);
+    padding: 8px 14px;
+    border-radius: var(--round);
+    color: var(--muted);
+    font-size: 14px;
+    transition:
+      background-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  .desktopSearch:hover {
+    background: #ebebeb;
+    box-shadow: 0 0 0 1px #dedede;
+  }
+  .desktopAddress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fdf5f4;
+    border: 1px solid #f8dcdb;
+    padding: 6px 12px;
+    border-radius: 10px;
+    text-align: left;
+    font-size: 13px;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+    max-width: 170px;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .desktopAddress:hover {
+    background: #faecea;
+    border-color: #f4c6c4;
+  }
+  .desktopAddressText {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .desktopAddressText small {
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1;
+  }
+  .desktopAddressText span {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ink);
+    margin-top: 1px;
+    font-size: 13px;
+  }
+  .desktopNav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .desktopNavItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 11px;
+    color: #666;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition:
+      color 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .desktopNavItem:hover {
+    color: var(--red);
+    background: #fbfbfb;
+  }
+  .desktopNavActive {
+    color: var(--red);
+    font-weight: 600;
+  }
+  .desktopNavIconWrap {
+    position: relative;
+    display: grid;
+    place-items: center;
+  }
+  .desktopBadge {
+    position: absolute;
+    top: -5px;
+    right: -8px;
+    background: var(--red);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 1px 4px;
+    min-width: 14px;
+    text-align: center;
+  }
+  .desktopCartBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--pink);
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 14px;
+    padding: 8px 14px;
+    border-radius: var(--round);
+    transition:
+      transform 0.15s ease,
+      background-color 0.15s ease;
+    flex-shrink: 0;
+  }
+  .desktopCartBtn:hover {
+    background: #f19898;
+    transform: translateY(-1px);
+  }
+  .desktopCartBtn svg {
+    color: var(--red);
+  }
+  .nav,
+  .floating {
+    display: none !important;
+    position: static !important;
+  }
+  .addressRow {
+    display: none;
+  }
+  .sheet {
+    padding-bottom: 60px;
+  }
+  .collections {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+@media (min-width: 1280px) {
+  .desktopBrand small {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #777;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+  .desktopAddress {
+    max-width: 200px;
   }
 }
 @media (max-width: 339px) {

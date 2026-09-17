@@ -88,6 +88,15 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  transition: transform 0.2s ease;
+}
+@media (hover: hover) {
+  .product:hover {
+    transform: translateY(-3px);
+  }
+  .product:hover .productImage {
+    box-shadow: 0 8px 24px rgba(85, 37, 27, 0.09);
+  }
 }
 .productImage {
   aspect-ratio: 1;
@@ -97,6 +106,7 @@
   margin-bottom: 10px;
   display: grid;
   place-items: center;
+  transition: box-shadow 0.2s ease;
 }
 .productImage img {
   width: 100%;
