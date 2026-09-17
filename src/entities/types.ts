@@ -44,6 +44,7 @@ export type UserProfile = { name: string; phone: string; signedIn: boolean };
 export type PaymentMethodMock = "receipt" | "demo-card";
 export type OrderLine = { product: Product; quantity: number };
 export type Order = {
+  storage?: "server";
   id: string;
   createdAt: string;
   lines: OrderLine[];
@@ -60,3 +61,15 @@ export type Order = {
 export type Promotion = { code: string; percent: number; description: string };
 export type Notification = { id: string; title: string };
 export type LoyaltyAccount = { balance: number; code: string };
+
+export type CreateOrderInput = {
+  items: CartItem[];
+  fulfillment: Fulfillment;
+  destination: string;
+  comment: string;
+  payment: PaymentMethodMock;
+  customer: { name: string; phone: string };
+  promoCode: string;
+  consent: boolean;
+  expectedTotal: number;
+};

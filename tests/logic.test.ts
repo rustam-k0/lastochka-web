@@ -1,8 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { totals } from "../src/features/money";
 import { validateCheckout } from "../src/features/checkout";
 import { catalog, searchProducts } from "../src/services/shop";
-const products = catalog.products();
+import { products, categories } from "../src/data/catalog";
+vi.spyOn(catalog, "products").mockReturnValue(products);
+vi.spyOn(catalog, "categories").mockReturnValue(categories);
 const cart = ["raspberry", "khychin-potato", "khychin-cheese", "yogurt"].map(
   (productId) => ({ productId, quantity: 1 }),
 );

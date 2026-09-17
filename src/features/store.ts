@@ -38,6 +38,7 @@ type State = {
   setConsent: (v: boolean) => void;
   clearCart: () => void;
   completeOrder: (o: Order) => void;
+  hydrateOrders: (orders: Order[]) => void;
   demo: () => void;
 };
 const initial = {
@@ -115,18 +116,25 @@ export const useShop = create<State>()(
       setComment: (comment) => set({ comment }),
       setConsent: (consent) => set({ consent }),
       clearCart: () => set({ cart: [] }),
+      hydrateOrders: (orders) =>
+        set((s) => ({
+          orders: [
+            ...orders,
+            ...s.orders.filter(
+              (o) =>
+                o.storage !== "server" &&
+                !orders.some((server) => server.id === o.id),
+            ),
+          ].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+        })),
       completeOrder: (o) =>
-        set((s) =>
-          s.orders.some((x) => x.id === o.id)
-            ? {}
-            : {
-                orders: [o, ...s.orders],
-                cart: [],
-                promo: false,
-                comment: "",
-                fulfillment: { ...s.fulfillment, slot: "" },
-              },
-        ),
+        set((s) => ({
+          orders: [o, ...s.orders.filter((x) => x.id !== o.id)],
+          cart: [],
+          promo: false,
+          comment: "",
+          fulfillment: { ...s.fulfillment, slot: "" },
+        })),
       demo: () =>
         set({
           ...structuredClone(initial),

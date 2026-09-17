@@ -1,6 +1,7 @@
 import { chromium, expect } from "@playwright/test";
 import fs from "node:fs";
-fs.mkdirSync("artifacts", { recursive: true });
+const output = process.env.ARTIFACT_DIR || "test-results/e2e";
+fs.mkdirSync(output, { recursive: true });
 const browser = await chromium.launch({
   headless: true,
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
@@ -8,7 +9,11 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
-const go = (path) => page.goto("http://localhost:5173" + path);
+const origin = process.env.TEST_ORIGIN || "http://localhost:5173";
+const go = async (path) => {
+  await page.goto(origin + path);
+  await page.locator("main header, main nav").first().waitFor();
+};
 await go("/?demo");
 await page.getByRole("button", { name: "Загрузить демоданные" }).click();
 await expect(page.getByRole("link", { name: /Корзина, 1/ })).toBeVisible();
@@ -22,7 +27,7 @@ for (const route of [
 ]) {
   await go("/" + route);
   await page.screenshot({
-    path: "artifacts/" + (route || "home") + ".png",
+    path: output + "/" + (route || "home") + ".png",
     fullPage: true,
   });
 }
@@ -70,6 +75,25 @@ await page.getByRole("checkbox", { name: "Согласие с условиями
 await page
   .getByPlaceholder("Пиццу очень ждём тёпленькой! :)")
   .fill("Тестовый комментарий");
+// Simulate a response lost AFTER the server has committed the order.
+let dropResponse = true;
+await page.route("**/api/orders", async (route) => {
+  if (route.request().method() === "POST" && dropResponse) {
+    dropResponse = false;
+    await route.fetch();
+    await route.abort("failed");
+  } else await route.continue();
+});
+await page.getByRole("button", { name: "Заказать", exact: true }).click();
+await expect(
+  page.getByText(
+    "Не удалось связаться с сервером. Проверьте соединение и повторите попытку.",
+  ),
+).toBeVisible();
+await expect(page.getByTestId("cart-total")).toHaveText("933,66 ₽");
+await page.unroute("**/api/orders");
+await page.reload();
+await expect(page.getByTestId("cart-total")).toHaveText("933,66 ₽");
 await page.getByRole("button", { name: "Заказать", exact: true }).dblclick();
 await expect(
   page.getByRole("heading", { name: "Тестовый заказ оформлен" }),
@@ -82,7 +106,22 @@ expect(stored.cart.length).toBe(0);
 expect(stored.orders[0].total).toBe(93366);
 expect(stored.orders[0].comment).toBe("Тестовый комментарий");
 expect(stored.orders[0].lines.length).toBe(4);
-await page.screenshot({ path: "artifacts/order-success.png", fullPage: true });
+await page.screenshot({ path: output + "/order-success.png", fullPage: true });
+// Server history restores the order even after the local cache is removed.
+await page.evaluate(() => {
+  const saved = JSON.parse(localStorage.getItem("lastochka-shop"));
+  saved.state.orders = [];
+  localStorage.setItem("lastochka-shop", JSON.stringify(saved));
+});
+const stranger = await browser.newContext();
+const history = await stranger.request.get(origin + "/api/orders");
+expect(await history.json()).toEqual([]);
+expect(
+  (
+    await stranger.request.get(origin + "/api/orders/" + stored.orders[0].id)
+  ).status(),
+).toBe(404);
+await stranger.close();
 await page.reload();
 await expect(
   page.getByRole("heading", { name: "Тестовый заказ оформлен" }),
@@ -146,7 +185,7 @@ for (const width of [360, 390, 430, 1280]) {
   }
   await go("/");
   await page.screenshot({
-    path: `artifacts/home-${width}.png`,
+    path: `${output}/home-${width}.png`,
     fullPage: true,
   });
 }
@@ -169,8 +208,14 @@ await page.reload();
 await expect(
   page.getByRole("heading", { name: "В корзине пока пусто" }),
 ).toBeVisible();
+await page.route("**/api/catalog", (route) => route.abort());
+await page.goto(origin + "/catalog");
+await expect(page.getByRole("button", { name: "Повторить" })).toBeVisible();
+await page.unroute("**/api/catalog");
+await page.getByRole("button", { name: "Повторить" }).click();
+await expect(page.getByRole("heading", { name: "Готовая еда" })).toBeVisible();
 expect(errors).toEqual([]);
 console.log(
-  "PASS: delivery, pickup, discount, validation, order snapshots, double-click, persistence, search, favorites, address synchronization, guest profile, dialog focus, 4 widths, image loading, empty cart.",
+  "PASS: delivery, pickup, discount, validation, order snapshots, double-click, persistence, search, favorites, address synchronization, guest profile, dialog focus, 4 widths, image loading, empty cart, server history, session isolation, lost-response retry after reload, API outage recovery.",
 );
 await browser.close();

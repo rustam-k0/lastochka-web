@@ -1,5 +1,11 @@
 import { useWebMCP } from "./useWebMCP";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   BrowserRouter,
   NavLink,
@@ -20,7 +26,7 @@ import { UIProvider, useUI } from "../shared/ui/UI";
 import Panels from "../features/Panels";
 import { useShop } from "../features/store";
 import { money, totals } from "../features/money";
-import { catalog } from "../services/shop";
+import { catalog, checkout } from "../services/shop";
 import {
   Home,
   Catalog,
@@ -36,11 +42,13 @@ import {
 } from "../pages/MainPages";
 import Cart from "../pages/Cart";
 import s from "./App.module.css";
+import p from "../pages/Pages.module.css";
 const scrollPositions = new Map<string, number>();
 function Shell() {
   useWebMCP();
+  useSyncExternalStore(catalog.subscribe, catalog.snapshot);
   const location = useLocation(),
-    { open, close } = useUI();
+    { open, close, toast } = useUI();
   const cart = useShop((s) => s.cart),
     promo = useShop((s) => s.promo),
     addressId = useShop((s) =>
@@ -68,17 +76,19 @@ function Shell() {
     }
   }, [location.pathname]);
   useEffect(() => {
-    void catalog.availability(addressId);
+    void catalog
+      .availability(addressId)
+      .catch(() => toast("Не удалось обновить наличие товаров."));
   }, [addressId]);
   return (
     <>
-      <div className={s.desktopBrand}>
-        <img src="/images/logo.png" alt="" />
-        <span>
-          Ласточка<small>ДЖАМИ · МАГАЗИН</small>
-        </span>
-      </div>
       <main className={s.shell}>
+        <div className={s.desktopBrand}>
+          <img src="/images/logo.png" alt="" />
+          <span>
+            Ласточка<small>ДЖАМИ · МАГАЗИН</small>
+          </span>
+        </div>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/catalog" element={<Catalog />} />
@@ -139,6 +149,46 @@ function Shell() {
   );
 }
 export default function App() {
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setError("");
+    Promise.all([catalog.load(), checkout.orders()])
+      .then(([, orders]) => {
+        if (!active) return;
+        useShop.getState().hydrateOrders(orders);
+        setReady(true);
+      })
+      .catch(() => {
+        if (active)
+          setError(
+            "Не удалось подключиться к магазину. Проверьте соединение и повторите попытку.",
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [attempt]);
+  if (!ready)
+    return (
+      <main className={s.shell}>
+        <div className={p.content}>
+          <p role={error ? "alert" : "status"} className={p.infoBox}>
+            {error || "Загружаем магазин…"}
+          </p>
+          {error && (
+            <button
+              className={p.primary}
+              onClick={() => setAttempt((n) => n + 1)}
+            >
+              Повторить
+            </button>
+          )}
+        </div>
+      </main>
+    );
   return (
     <BrowserRouter>
       <UIProvider>

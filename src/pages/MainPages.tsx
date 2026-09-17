@@ -360,21 +360,23 @@ export function ProductPage() {
           />
         </button>
       </Header>
-      <div className={p.content}>
+      <div className={`${p.content} ${p.detail}`}>
         <img className={p.detailImage} src={product.image} alt={product.name} />
-        <h1 className={p.detailTitle}>{product.name}</h1>
-        <p className={p.note}>
-          {product.unit} · В наличии {product.stock} шт.
-        </p>
-        <div className={p.priceRow}>
-          <b>{money(product.price)}</b>
-          <Quantity product={product} />
+        <div className={p.detailBody}>
+          <h1 className={p.detailTitle}>{product.name}</h1>
+          <p className={p.note}>
+            {product.unit} · В наличии {product.stock} шт.
+          </p>
+          <div className={p.priceRow}>
+            <b>{money(product.price)}</b>
+            <Quantity product={product} />
+          </div>
+          <section className={p.description}>
+            <h2>О товаре</h2>
+            <p>{product.description}</p>
+            <small>Артикул: {product.sku}</small>
+          </section>
         </div>
-        <section className={p.description}>
-          <h2>О товаре</h2>
-          <p>{product.description}</p>
-          <small>Артикул: {product.sku}</small>
-        </section>
       </div>
     </>
   );
@@ -384,7 +386,7 @@ export function Orders() {
   return (
     <>
       <Header title="Мои заказы" />
-      <div className={p.content}>
+      <div className={`${p.content} ${orders.length ? p.orders : ""}`}>
         {orders.length ? (
           orders.map((o) => (
             <Link className={p.orderCard} to={"/orders/" + o.id} key={o.id}>
@@ -426,12 +428,14 @@ export function OrderDetail() {
   return (
     <>
       <Header title={"Заказ № " + o.id.slice(-6)} />
-      <div className={p.content}>
+      <div className={`${p.content} ${p.readable}`}>
         <div className={p.success}>
           <div>✓</div>
           <h2>Тестовый заказ оформлен</h2>
           <p>
-            Он сохранён только в этом браузере.
+            {o.storage === "server"
+              ? "Он сохранён в базе данных сервера."
+              : "Он сохранён только в этом браузере."}
             <br />
             Магазин не получил заказ, оплата не списана.
           </p>

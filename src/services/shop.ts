@@ -1,5 +1,5 @@
-import { categories, collections, products } from "../data/catalog";
 import { images } from "../data/manifest";
+import { promotionCode } from "../data/checkout";
 import type {
   Product,
   Category,
@@ -8,20 +8,57 @@ import type {
   Notification,
   LoyaltyAccount,
   Promotion,
+  CreateOrderInput,
 } from "../entities/types";
-export interface CatalogService {
-  products(): Product[];
-  product(id: string): Product | undefined;
-  categories(): Category[];
-  collections(): Collection[];
-  availability(location: string): Promise<Product[]>;
+export { pickupPoints } from "../data/checkout";
+
+async function api<T>(url: string, init?: RequestInit): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch("/api" + url, {
+      credentials: "same-origin",
+      ...init,
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch {
+    throw new Error(
+      "Не удалось связаться с сервером. Проверьте соединение и повторите попытку.",
+    );
+  }
+  const data = await response.json();
+  if (!response.ok)
+    throw new Error(data.error || "Сервис временно недоступен.");
+  return data as T;
 }
-export const catalog: CatalogService = {
-  products: () => products,
-  product: (id) => products.find((p) => p.id === id),
-  categories: () => categories,
-  collections: () => collections,
-  availability: async () => products.map((p) => ({ ...p })),
+type CatalogData = {
+  products: Product[];
+  categories: Category[];
+  collections: Collection[];
+};
+let data: CatalogData = { products: [], categories: [], collections: [] };
+let version = 0;
+const listeners = new Set<() => void>();
+export const catalog = {
+  products: () => data.products,
+  product: (id: string) => data.products.find((p) => p.id === id),
+  categories: () => data.categories,
+  collections: () => data.collections,
+  subscribe: (callback: () => void) => {
+    listeners.add(callback);
+    return () => {
+      listeners.delete(callback);
+    };
+  },
+  snapshot: () => version,
+  async load() {
+    data = await api<CatalogData>("/catalog");
+    version += 1;
+    listeners.forEach((callback) => callback());
+    return data;
+  },
+  async availability(_location: string) {
+    return (await catalog.load()).products;
+  },
 };
 export const normalize = (v: string) =>
   v.toLocaleLowerCase("ru").replaceAll("ё", "е").trim();
@@ -44,39 +81,47 @@ export const loyalty: LoyaltyAccount = {
 };
 export const notifications: Notification[] = [];
 export const promotion: Promotion = {
-  code: "ЛАСТОЧКА10",
+  code: promotionCode,
   percent: 10,
   description:
     "Тестовая скидка 10% на товары. Применяется один раз, без суммирования с другими акциями.",
 };
-export const pickupPoints = [
-  {
-    id: "kalinina",
-    name: "Ласточка Джами",
-    address: "Нальчик, ул. Калинина, 76",
+
+const pendingKey = "lastochka-pending-order";
+export const checkout = {
+  slots: (mode: string) =>
+    api<{ id: string; date: string; label: string }[]>(
+      "/slots?mode=" + encodeURIComponent(mode),
+    ),
+  orders: () => api<Order[]>("/orders"),
+  hasPending(input: CreateOrderInput) {
+    try {
+      const pending = JSON.parse(sessionStorage.getItem(pendingKey) || "null");
+      return pending?.fingerprint === JSON.stringify(input);
+    } catch {
+      return false;
+    }
   },
-];
-export interface CheckoutService {
-  slots(mode: string): Promise<{ id: string; date: string; label: string }[]>;
-  createOrder(order: Order): Promise<Order>;
-}
-export const checkout: CheckoutService = {
-  slots: async (mode) =>
-    Array.from({ length: 3 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() + i + 1);
-      const date = d.toLocaleDateString("ru-RU", {
-        day: "numeric",
-        month: "long",
-      });
-      return ["10:00–12:00", "12:00–14:00", "16:00–18:00"].map((label) => ({
-        id: mode + "|" + d.toISOString().slice(0, 10) + "|" + label,
-        date,
-        label,
-      }));
-    }).flat(),
-  createOrder: async (order) => {
-    await new Promise((r) => setTimeout(r, 350));
-    return structuredClone(order);
+  async createOrder(input: CreateOrderInput) {
+    const fingerprint = JSON.stringify(input);
+    let pending: { fingerprint: string; idempotencyKey: string } | null = null;
+    try {
+      pending = JSON.parse(sessionStorage.getItem(pendingKey) || "null");
+    } catch {
+      /* Replace malformed draft metadata. */
+    }
+    if (!pending || pending.fingerprint !== fingerprint) {
+      pending = { fingerprint, idempotencyKey: crypto.randomUUID() };
+      sessionStorage.setItem(pendingKey, JSON.stringify(pending));
+    }
+    return api<Order>("/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...input,
+        idempotencyKey: pending.idempotencyKey,
+      }),
+    });
   },
+  clearPending: () => sessionStorage.removeItem(pendingKey),
 };

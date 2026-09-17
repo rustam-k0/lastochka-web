@@ -147,6 +147,7 @@ export function Quantity({
   ) : (
     <button
       className={s.add}
+      disabled={product.stock < product.quantityStep}
       onClick={() => change(product.id, product.quantityStep)}
       aria-label={"Добавить " + product.name}
     >

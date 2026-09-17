@@ -1,5 +1,5 @@
 .shell {
-  width: min(100%, var(--width));
+  width: var(--page-width);
   margin: auto;
   min-height: 100dvh;
   background: white;
@@ -10,7 +10,7 @@
   padding-top: max(16px, env(safe-area-inset-top));
 }
 .top {
-  padding: 0 16px 8px;
+  padding: 0 var(--space) 8px;
 }
 .addressRow {
   display: flex;
@@ -20,6 +20,7 @@
 }
 .address {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -32,8 +33,10 @@
 }
 .address span {
   flex: 1;
+  min-width: 0;
 }
 .icon {
+  flex-shrink: 0;
   width: 36px;
   height: 44px;
   display: grid;
@@ -41,7 +44,7 @@
 }
 .loyalty {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 5px;
   background: white;
   padding: 4px;
@@ -89,13 +92,15 @@
 }
 .qr svg {
   width: 100%;
+  max-width: 128px;
   height: auto;
 }
 .sheet {
   border-radius: var(--sheet) var(--sheet) 0 0;
   background: white;
   margin-top: 0;
-  padding: 20px 16px calc(var(--nav) + var(--float) + 20px + var(--safe));
+  padding: 20px var(--space)
+    calc(var(--nav) + var(--float) + 24px + var(--safe));
 }
 .sheet h2 {
   margin-bottom: 18px;
@@ -103,7 +108,7 @@
 .collections {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
+  gap: var(--gap);
 }
 .collection {
   aspect-ratio: 1;
@@ -139,7 +144,7 @@
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: min(100%, var(--width));
+  width: var(--controls-width);
   height: calc(var(--nav) + var(--safe));
   padding: 9px 8px calc(10px + var(--safe));
   display: grid;
@@ -167,10 +172,11 @@
   left: 50%;
   transform: translateX(-50%);
   bottom: calc(var(--nav) + var(--safe) + 12px);
-  width: min(100%, var(--width));
+  width: var(--controls-width);
   padding: 0 16px;
   display: flex;
   justify-content: space-between;
+  gap: 8px;
   pointer-events: none;
   z-index: 21;
 }
@@ -208,9 +214,7 @@
   }
   .desktopBrand {
     display: flex;
-    position: fixed;
-    left: 32px;
-    top: 30px;
+    padding: 16px var(--space);
     gap: 10px;
     align-items: center;
     color: #801313;
@@ -230,8 +234,43 @@
     margin-top: 3px;
   }
 }
-@media (min-width: 700px) and (max-width: 960px) {
-  .desktopBrand span {
-    display: none;
+@media (min-width: 560px) {
+  .collections {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+  .nav {
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -4px 20px #55251b0c;
+  }
+}
+@media (min-width: 800px) {
+  .top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+    align-items: center;
+    gap: 24px;
+    padding-bottom: 20px;
+  }
+  .addressRow {
+    margin-bottom: 0;
+  }
+}
+@media (max-width: 339px) {
+  .collections {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .floating a {
+    font-size: 16px;
+    padding: 10px;
+    min-width: 0;
+  }
+}
+@media (max-height: 500px) {
+  .nav {
+    padding-top: 5px;
+    padding-bottom: calc(5px + var(--safe));
+  }
+  .nav a {
+    gap: 2px;
   }
 }

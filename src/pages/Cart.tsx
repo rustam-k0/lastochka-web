@@ -12,7 +12,8 @@ import { useShop, addressText } from "../features/store";
 import { totals, money } from "../features/money";
 import { validateCheckout } from "../features/checkout";
 import { catalog, checkout, pickupPoints } from "../services/shop";
-import type { Order } from "../entities/types";
+
+import type { CreateOrderInput } from "../entities/types";
 import { formatSlot } from "./MainPages";
 import p from "./Pages.module.css";
 import s from "../app/App.module.css";
@@ -64,13 +65,27 @@ export default function Cart() {
   }
   async function placeOrder() {
     if (locked.current) return;
-    const errors = validateCheckout(
-      state.cart,
-      products,
-      state.fulfillment,
+    const input: CreateOrderInput = {
+      items: state.cart,
+      fulfillment: state.fulfillment,
       destination,
-      state.consent,
-    );
+      comment: state.comment.trim(),
+      payment: state.payment,
+      customer: { name: state.profile.name, phone: state.profile.phone },
+      promoCode: state.promo ? "ЛАСТОЧКА10" : "",
+      consent: state.consent,
+      expectedTotal: total.total,
+    };
+    const retry = checkout.hasPending(input);
+    const errors = retry
+      ? {}
+      : validateCheckout(
+          state.cart,
+          products,
+          state.fulfillment,
+          destination,
+          state.consent,
+        );
     setErrors(errors);
     if (Object.keys(errors).length) {
       setTimeout(
@@ -85,42 +100,37 @@ export default function Cart() {
     locked.current = true;
     setBusy(true);
     try {
-      const available = await catalog.availability(destination);
-      const freshErrors = validateCheckout(
-        state.cart,
-        available,
-        state.fulfillment,
-        destination,
-        state.consent,
-      );
-      const slots = await checkout.slots(state.fulfillment.mode);
-      if (!slots.some((x) => x.id === state.fulfillment.slot))
-        freshErrors.slot = "Этот интервал больше недоступен. Выберите другой.";
-      if (Object.keys(freshErrors).length) {
-        setErrors(freshErrors);
-        return;
+      if (!retry) {
+        const available = await catalog.availability(destination);
+        const freshErrors = validateCheckout(
+          state.cart,
+          available,
+          state.fulfillment,
+          destination,
+          state.consent,
+        );
+        const slots = await checkout.slots(state.fulfillment.mode);
+        if (!slots.some((x) => x.id === state.fulfillment.slot))
+          freshErrors.slot =
+            "Этот интервал больше недоступен. Выберите другой.";
+        if (Object.keys(freshErrors).length) {
+          setErrors(freshErrors);
+          return;
+        }
       }
-      const order: Order = {
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-        lines: state.cart.map((l) => ({
-          product: structuredClone(
-            available.find((p) => p.id === l.productId)!,
-          ),
-          quantity: l.quantity,
-        })),
-        ...totals(state.cart, available, state.promo),
-        fulfillment: structuredClone(state.fulfillment),
-        destination,
-        comment: state.comment.trim(),
-        payment: state.payment,
-        status: "Тестовый заказ",
-      };
-      const saved = await checkout.createOrder(order);
+      const saved = await checkout.createOrder(input);
       useShop.getState().completeOrder(saved);
+      checkout.clearPending();
+      void catalog.load().catch(() => {});
       navigate("/orders/" + saved.id, { replace: true });
-    } catch {
-      setErrors({ submit: "Не удалось сохранить заказ. Попробуйте ещё раз." });
+    } catch (error) {
+      void catalog.load().catch(() => {});
+      setErrors({
+        submit:
+          error instanceof Error
+            ? error.message
+            : "Не удалось сохранить заказ. Попробуйте ещё раз.",
+      });
     } finally {
       locked.current = false;
       setBusy(false);
@@ -159,163 +169,171 @@ export default function Cart() {
         </div>
       ) : (
         <>
-          <div className={p.cart}>
-            <div className={p.switch} aria-label="Способ получения">
-              {(
-                [
-                  ["delivery", "Доставка"],
-                  ["pickup", "Самовывоз"],
-                ] as const
-              ).map(([mode, label]) => (
-                <button
-                  key={mode}
-                  className={state.fulfillment.mode === mode ? p.selected : ""}
-                  aria-pressed={state.fulfillment.mode === mode}
-                  onClick={() => {
-                    state.setMode(mode);
-                    setErrors({});
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <button className={p.time} onClick={() => open("time")}>
-              <Clock3 color="var(--red)" size={23} />
-              <span>
-                {state.fulfillment.slot ? (
-                  <>
-                    <small>
-                      {state.fulfillment.mode === "delivery"
-                        ? "Доставим"
-                        : "Можно забрать"}
-                    </small>
-                    {formatSlot(state.fulfillment.slot)}
-                  </>
-                ) : (
-                  "Выберите время"
-                )}
-              </span>
-              <ChevronRight size={25} />
-            </button>
-            {errors.slot && (
-              <p data-error className={p.error} role="alert">
-                {errors.slot}
-              </p>
-            )}
-            <div className={p.cartItems}>
-              {state.cart.map((l) => {
-                const product = catalog.product(l.productId);
-                if (!product) return null;
-                return (
-                  <article className={p.cartItem} key={l.productId}>
-                    <Link to={"/product/" + product.id}>
-                      <img src={product.image} alt={product.name} />
-                    </Link>
-                    <Link
-                      className={p.cartItemName}
-                      to={"/product/" + product.id}
-                    >
-                      <p>{product.name}</p>
-                      <small>{money(product.price)} / 1 шт</small>
-                    </Link>
-                    <div className={p.cartPrice}>
-                      <b>{money(product.price * l.quantity)}</b>
-                      <Quantity product={product} compact />
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-            {errors.cart && (
-              <p data-error className={p.error}>
-                {errors.cart}
-              </p>
-            )}
-            <label className={p.comment}>
-              <span>Комментарий сборщику</span>
-              <textarea
-                placeholder="Пиццу очень ждём тёпленькой! :)"
-                value={state.comment}
-                onChange={(e) => state.setComment(e.target.value)}
-                maxLength={500}
-              />
-            </label>
-            <div className={p.checkoutFields}>
-              <Row
-                onClick={() =>
-                  open(
-                    state.fulfillment.mode === "delivery"
-                      ? "addresses"
-                      : "pickup",
-                  )
-                }
-                sub={destination || "Нужно выбрать для заказа"}
-              >
-                {state.fulfillment.mode === "delivery"
-                  ? "Адрес доставки"
-                  : "Пункт самовывоза"}
-              </Row>
-              {errors.destination && !destination && (
+          <div className={p.cart} inert={busy}>
+            <div className={p.cartMain}>
+              <div className={p.switch} aria-label="Способ получения">
+                {(
+                  [
+                    ["delivery", "Доставка"],
+                    ["pickup", "Самовывоз"],
+                  ] as const
+                ).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    className={
+                      state.fulfillment.mode === mode ? p.selected : ""
+                    }
+                    aria-pressed={state.fulfillment.mode === mode}
+                    onClick={() => {
+                      state.setMode(mode);
+                      setErrors({});
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <button className={p.time} onClick={() => open("time")}>
+                <Clock3 color="var(--red)" size={23} />
+                <span>
+                  {state.fulfillment.slot ? (
+                    <>
+                      <small>
+                        {state.fulfillment.mode === "delivery"
+                          ? "Доставим"
+                          : "Можно забрать"}
+                      </small>
+                      {formatSlot(state.fulfillment.slot)}
+                    </>
+                  ) : (
+                    "Выберите время"
+                  )}
+                </span>
+                <ChevronRight size={25} />
+              </button>
+              {errors.slot && (
                 <p data-error className={p.error} role="alert">
-                  {errors.destination}
+                  {errors.slot}
                 </p>
               )}
-              <Row
-                onClick={() => open("payment")}
-                sub={
-                  state.payment === "receipt"
-                    ? "При получении"
-                    : "Демонстрационная карта •••• 0000"
-                }
-              >
-                Способ оплаты
-              </Row>
-              <Row
-                onClick={() => open("promotions")}
-                sub={state.promo ? "ЛАСТОЧКА10 · скидка 10%" : "Есть промокод?"}
-              >
-                Акции и промокоды
-              </Row>
-            </div>
-            <div className={p.summary}>
-              <div>
-                <span>Товары</span>
-                <span>{money(total.subtotal)}</span>
+              <div className={p.cartItems}>
+                {state.cart.map((l) => {
+                  const product = catalog.product(l.productId);
+                  if (!product) return null;
+                  return (
+                    <article className={p.cartItem} key={l.productId}>
+                      <Link to={"/product/" + product.id}>
+                        <img src={product.image} alt={product.name} />
+                      </Link>
+                      <Link
+                        className={p.cartItemName}
+                        to={"/product/" + product.id}
+                      >
+                        <p>{product.name}</p>
+                        <small>{money(product.price)} / 1 шт</small>
+                      </Link>
+                      <div className={p.cartPrice}>
+                        <b>{money(product.price * l.quantity)}</b>
+                        <Quantity product={product} compact />
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
-              {state.promo && (
-                <div>
-                  <span>Скидка 10%</span>
-                  <span>−{money(total.discount)}</span>
-                </div>
+              {errors.cart && (
+                <p data-error className={p.error}>
+                  {errors.cart}
+                </p>
               )}
-              <div>
-                <span>
-                  {state.fulfillment.mode === "delivery"
-                    ? "Доставка в демоверсии"
-                    : "Самовывоз"}
-                </span>
-                <span>Бесплатно</span>
-              </div>
-              <div>
-                <b>Итого</b>
-                <b data-testid="cart-total">{money(total.total)}</b>
-              </div>
+              <label className={p.comment}>
+                <span>Комментарий сборщику</span>
+                <textarea
+                  placeholder="Пиццу очень ждём тёпленькой! :)"
+                  value={state.comment}
+                  onChange={(e) => state.setComment(e.target.value)}
+                  maxLength={500}
+                />
+              </label>
             </div>
-            <p className={p.demoNotice}>
-              Тестовый заказ: деньги не спишутся, магазин не получит заказ.
-              Данные сохранятся только в этом браузере.
-            </p>
-            {errors.submit && (
-              <p data-error className={p.error} role="alert">
-                {errors.submit}
+            <div className={p.cartAside}>
+              <div className={p.checkoutFields}>
+                <Row
+                  onClick={() =>
+                    open(
+                      state.fulfillment.mode === "delivery"
+                        ? "addresses"
+                        : "pickup",
+                    )
+                  }
+                  sub={destination || "Нужно выбрать для заказа"}
+                >
+                  {state.fulfillment.mode === "delivery"
+                    ? "Адрес доставки"
+                    : "Пункт самовывоза"}
+                </Row>
+                {errors.destination && !destination && (
+                  <p data-error className={p.error} role="alert">
+                    {errors.destination}
+                  </p>
+                )}
+                <Row
+                  onClick={() => open("payment")}
+                  sub={
+                    state.payment === "receipt"
+                      ? "При получении"
+                      : "Демонстрационная карта •••• 0000"
+                  }
+                >
+                  Способ оплаты
+                </Row>
+                <Row
+                  onClick={() => open("promotions")}
+                  sub={
+                    state.promo ? "ЛАСТОЧКА10 · скидка 10%" : "Есть промокод?"
+                  }
+                >
+                  Акции и промокоды
+                </Row>
+              </div>
+              <div className={p.summary}>
+                <div>
+                  <span>Товары</span>
+                  <span>{money(total.subtotal)}</span>
+                </div>
+                {state.promo && (
+                  <div>
+                    <span>Скидка 10%</span>
+                    <span>−{money(total.discount)}</span>
+                  </div>
+                )}
+                <div>
+                  <span>
+                    {state.fulfillment.mode === "delivery"
+                      ? "Доставка в демоверсии"
+                      : "Самовывоз"}
+                  </span>
+                  <span>Бесплатно</span>
+                </div>
+                <div>
+                  <b>Итого</b>
+                  <b data-testid="cart-total">{money(total.total)}</b>
+                </div>
+              </div>
+              <p className={p.demoNotice}>
+                Тестовый заказ: деньги не спишутся, магазин не получит заказ.
+                Заказ сохранится в базе данных сервера.
               </p>
-            )}
-            {errors.consent && !state.consent && (
-              <p data-error className={p.error} role="alert">
-                {errors.consent}
-              </p>
-            )}
+              {errors.submit && (
+                <p data-error className={p.error} role="alert">
+                  {errors.submit}
+                </p>
+              )}
+              {errors.consent && !state.consent && (
+                <p data-error className={p.error} role="alert">
+                  {errors.consent}
+                </p>
+              )}
+            </div>
           </div>
           <footer className={p.checkoutBar}>
             <p className={p.checkoutHint}>
@@ -329,6 +347,7 @@ export default function Cart() {
                 id="consent"
                 type="checkbox"
                 aria-label="Согласие с условиями"
+                disabled={busy}
                 checked={state.consent}
                 onChange={(e) => state.setConsent(e.target.checked)}
               />

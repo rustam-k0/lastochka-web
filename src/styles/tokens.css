@@ -24,7 +24,10 @@
   --small: 14px;
   --nav: 78px;
   --float: 62px;
-  --width: 440px;
+  --width: 1280px;
+  --gutter: 0px;
+  --page-width: min(calc(100% - 2 * var(--gutter)), var(--width));
+  --controls-width: min(calc(100% - 2 * var(--gutter)), 640px);
   --safe: env(safe-area-inset-bottom, 0px);
 }
 * {
@@ -32,6 +35,10 @@
 }
 body {
   margin: 0;
+  overflow-wrap: anywhere;
+}
+html {
+  scroll-padding-block: 80px 190px;
 }
 button,
 input,
@@ -106,4 +113,17 @@ img {
 }
 body:has(dialog[open]) {
   overflow: hidden;
+}
+@media (min-width: 560px) {
+  :root {
+    --gutter: clamp(16px, 2.5vw, 32px);
+    --space: clamp(20px, 2.5vw, 32px);
+    --gap: 12px;
+  }
+}
+@media (max-height: 500px) {
+  :root {
+    --nav: 60px;
+    --float: 56px;
+  }
 }
