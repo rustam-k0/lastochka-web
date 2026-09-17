@@ -60,8 +60,8 @@ const rows: [string, string, string, number, string][] = [
   ["bread-rye", "Хлеб ржаной 350г", "bread", 7500, "bread"],
   ["lavash", "Лаваш тонкий 2 шт", "flatbread", 5500, "flatbread"],
   ["flatbread", "Лепёшка пшеничная 200г", "flatbread", 4500, "flatbread"],
-  ["crispbread", "Хлебцы цельнозерновые 100г", "crispbread", 8900, "bread"],
-  ["crackers", "Сухари пшеничные 200г", "crackers", 7500, "bread"],
+  ["crispbread", "Хлебцы цельнозерновые 100г", "crispbread", 8900, "crispbread"],
+  ["crackers", "Сухари пшеничные 200г", "crackers", 7500, "crackers"],
   ["kefir", "Кефир местный 2,5% 500мл", "dairy", 8900, "local"],
   ["cheese", "Сыр домашний 250г", "dairy", 24000, "local"],
   ["detergent", "Средство для мытья посуды 450мл", "home", 16900, "cleaning"],
@@ -89,6 +89,7 @@ export const collections: Collection[] = [
     image: images.school,
     color: "#268b39",
     productIds: ["stationery"],
+    dark: true,
   },
   {
     id: "bakery",
@@ -116,6 +117,7 @@ export const collections: Collection[] = [
     image: images.cleaning,
     color: "#aa55d1",
     productIds: ["detergent"],
+    dark: true,
   },
   {
     id: "diet",

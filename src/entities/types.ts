@@ -24,6 +24,7 @@ export type Collection = {
   image: string;
   color: string;
   productIds: string[];
+  dark?: boolean;
 };
 export type CartItem = { productId: string; quantity: number };
 export type Address = {

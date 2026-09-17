@@ -14,6 +14,8 @@ export const images = Object.fromEntries(
     "buns",
     "bread",
     "flatbread",
+    "crispbread",
+    "crackers",
     "raspberry",
     "khychin-potato",
     "khychin-cheese",

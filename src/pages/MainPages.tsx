@@ -41,6 +41,10 @@ export function Home() {
             <Bell />
           </Link>
         </div>
+        <div className={s.desktopGreeting}>
+          <h1>Магазин у дома «Ласточка»</h1>
+          <p>Свежая выпечка, готовая еда и продукты с доставкой от 30 минут</p>
+        </div>
         <div className={s.loyalty}>
           <div className={s.loyaltyLeft}>
             <button className={s.bonus} onClick={() => open("bonuses")}>
@@ -75,7 +79,7 @@ export function Home() {
             <Link
               to={"/collection/" + c.id}
               key={c.id}
-              className={s.collection}
+              className={`${s.collection} ${c.dark ? s.collectionDark : ""}`}
               style={{ background: c.color }}
             >
               <h3>{c.name}</h3>
@@ -191,35 +195,37 @@ export function Profile() {
         </button>
       </Header>
       <div className={p.profile}>
-        <button
-          className={p.userCard}
-          onClick={() => open(state.profile.signedIn ? "profile" : "login")}
-        >
-          <div>
-            <strong>
-              {state.profile.signedIn
-                ? state.profile.name || state.profile.phone
-                : "Войти в профиль"}
-            </strong>
-            <p>
-              {state.profile.signedIn
-                ? state.profile.phone
-                : "Сохраняйте ваши покупки"}
-            </p>
-          </div>
-          <ChevronRight />
-        </button>
-        <button className={p.bonusCard} onClick={() => open("bonuses")}>
-          <div>
-            <strong>0</strong>
-            <p>бонусов</p>
-          </div>
-          <u>
-            Как получить
-            <br />
-            бонусы?
-          </u>
-        </button>
+        <div className={p.profileCards}>
+          <button
+            className={p.userCard}
+            onClick={() => open(state.profile.signedIn ? "profile" : "login")}
+          >
+            <div>
+              <strong>
+                {state.profile.signedIn
+                  ? state.profile.name || state.profile.phone
+                  : "Войти в профиль"}
+              </strong>
+              <p>
+                {state.profile.signedIn
+                  ? state.profile.phone
+                  : "Сохраняйте ваши покупки"}
+              </p>
+            </div>
+            <ChevronRight />
+          </button>
+          <button className={p.bonusCard} onClick={() => open("bonuses")}>
+            <div>
+              <strong>0</strong>
+              <p>бонусов</p>
+            </div>
+            <u>
+              Как получить
+              <br />
+              бонусы?
+            </u>
+          </button>
+        </div>
         <div className={p.profileHeading}>
           <h2>Мои заказы</h2>
           <Link to="/orders">Все заказы</Link>
