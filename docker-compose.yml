@@ -1,0 +1,17 @@
+services:
+  lastochka:
+    build: .
+    container_name: lastochka-web
+    restart: unless-stopped
+    ports:
+      - "80:3001"
+      - "3001:3001"
+    volumes:
+      - lastochka-data:/app/data
+    environment:
+      - PORT=3001
+      - HOST=0.0.0.0
+      - DATABASE_PATH=/app/data/lastochka.sqlite
+
+volumes:
+  lastochka-data:
