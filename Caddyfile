@@ -1,0 +1,8 @@
+{
+	# Email for Let's Encrypt certificate notifications
+	email admin@lastochka.internal
+}
+
+{$DOMAIN:lastochka.152.53.101.9.sslip.io} {
+	reverse_proxy lastochka:3001
+}

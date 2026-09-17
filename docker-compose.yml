@@ -4,7 +4,6 @@ services:
     container_name: lastochka-web
     restart: unless-stopped
     ports:
-      - "80:3001"
       - "3001:3001"
     volumes:
       - lastochka-data:/app/data
@@ -13,5 +12,23 @@ services:
       - HOST=0.0.0.0
       - DATABASE_PATH=/app/data/lastochka.sqlite
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: lastochka-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      - DOMAIN=${DOMAIN:-lastochka.152.53.101.9.sslip.io}
+    depends_on:
+      - lastochka
+
 volumes:
   lastochka-data:
+  caddy-data:
+  caddy-config:
