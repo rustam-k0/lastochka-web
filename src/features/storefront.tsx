@@ -19,6 +19,7 @@ import { ProductGrid, ProductDetail, ProductCarousel, SkeletonCards } from '@/co
 import { Filters } from '@/components/filters';
 import { LoyaltyCard } from './account/bonuses/loyalty-card';
 import { Reviews } from './account/reviews/reviews-view';
+import { InteractiveCategorySection } from '@/components/interactive-category-section';
 
 export function getCategoryGroupColor(category: Category | string): string {
   const slug = typeof category === 'string' ? category : (category.slug || '').toLowerCase();
@@ -153,29 +154,6 @@ export async function Home() {
         </section>
       )}
 
-      {/* Compact banners without black void */}
-      {banners.length > 0 && (
-        <section className="banner-grid compact-banners">
-          {banners.map((b) => {
-            const href =
-              b.linkType === 'product' && b.linkProductId
-                ? '/product/' + b.linkProductId
-                : b.linkType === 'category' && b.linkCategoryId
-                  ? '/category/' + b.linkCategoryId
-                  : null;
-            return href ? (
-              <Link href={href} key={b.id} className="compact-banner-item">
-                <Photo src={b.image?.path} alt={b.title} />
-              </Link>
-            ) : (
-              <div key={b.id} className="compact-banner-item">
-                <Photo src={b.image?.path} alt={b.title} />
-              </div>
-            );
-          })}
-        </section>
-      )}
-
       {featuredProducts.length > 0 && (
         <section>
           <SectionHeading
@@ -187,18 +165,22 @@ export async function Home() {
         </section>
       )}
 
-      {/* Quick categories navigation on Home */}
-      <section className="category-sections">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Популярное</p>
-            <h2>Категории продуктов</h2>
+      {/* Compact catalog navigation hint */}
+      <section className="catalog-hint-section">
+        <div className="catalog-hint-card">
+          <div className="catalog-hint-info">
+            <div className="catalog-hint-badge">
+              <LayoutGrid size={24} />
+            </div>
+            <div>
+              <h3>Каталог всех товаров</h3>
+              <p>Готовая кулинария, свежая выпечка, фермерские продукты и напитки</p>
+            </div>
           </div>
-          <Link href="/catalog" className="all-catalog-link">
-            <LayoutGrid size={18} /> Весь каталог <ArrowRight size={18} />
+          <Link href="/catalog" className="catalog-hint-button">
+            Открыть каталог <ArrowRight size={18} />
           </Link>
         </div>
-        <CategoryTiles categories={showcase} />
       </section>
     </>
   );
@@ -274,37 +256,23 @@ async function findCategoryPath(
 
 async function CatalogCategorySection({ store, category }: { store: number; category: Category }) {
   const groupBg = getCategoryGroupColor(category);
-  const [children, productsData] = await Promise.all([
-    publicApi(`stores/${store}/categories/${category.id}/children`)
-      .then(list<Category>)
-      .catch(() => [] as Category[]),
-    publicApi(`stores/${store}/categories/${category.id}/products?perPage=8`)
-      .then(list)
-      .catch(() => []),
-  ]);
+  const children = await publicApi(`stores/${store}/categories/${category.id}/children`)
+    .then(list<Category>)
+    .catch(() => [] as Category[]);
 
-  const products = productsData.map(product);
   const tilesToRender = children.length ? children : (category.isLeaf ? [category] : []);
 
-  if (!tilesToRender.length && !products.length) {
+  if (!tilesToRender.length) {
     return null;
   }
 
   return (
-    <section className="catalog-category-section">
-      <SectionHeading
-        title={category.name}
-        href={`/category/${category.slug}`}
-      />
-      {tilesToRender.length > 0 && (
-        <CategoryTiles categories={tilesToRender} backgroundColor={groupBg} />
-      )}
-      {products.length > 0 && (
-        <div className="catalog-section-products">
-          <ProductCarousel products={products} />
-        </div>
-      )}
-    </section>
+    <InteractiveCategorySection
+      store={store}
+      category={category}
+      subcategories={tilesToRender}
+      groupBg={groupBg}
+    />
   );
 }
 

@@ -10,10 +10,9 @@ test('home, catalog, search and product links use live store data',async({page})
   await page.goto('/catalog');
   await expect(page.getByRole('heading',{name:'Каталог',exact:true})).toBeVisible();
   await expect(page.locator('.catalog-category-section').first()).toBeVisible();
-  await expect(page.locator('.product-card').first()).toBeVisible();
   const category=page.locator('.category-tile').first();
   await category.click();
-  await expect(page.locator('.category-tile, .product-card').first()).toBeVisible();
+  await expect(page.locator('.product-card').first()).toBeVisible();
   await page.goto('/search?query=молоко');
   await expect(page.getByRole('heading',{name:/Результаты поиска/})).toBeVisible();
   const product=page.locator('.product-card .product-title').first();

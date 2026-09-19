@@ -307,11 +307,11 @@ export function SearchBox() {
         router.push('/search?query=' + encodeURIComponent(q));
       }}
     >
-      <Search size={21} />
+      <Search size={20} className="search-icon" />
       <input
         name="query"
         aria-label="Поиск товаров"
-        placeholder="Найти любимые продукты и блюда"
+        placeholder="Поиск продуктов и блюд..."
         value={q}
         onChange={(e) => setQ(e.target.value)}
         minLength={2}
