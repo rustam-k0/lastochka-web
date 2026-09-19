@@ -365,7 +365,7 @@ function CartContent() {
                     className={mode === 'pickup' ? 'selected' : ''}
                     onClick={() => setMode('pickup')}
                   >
-                    <StoreIcon size={17} /> Самовывоз из магазина
+                    <StoreIcon size={17} /> Самовывоз
                   </button>
                 )}
               </div>

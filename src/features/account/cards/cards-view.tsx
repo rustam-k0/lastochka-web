@@ -104,7 +104,11 @@ export function CardsView() {
               Вы перейдёте на защищённую страницу платёжного сервиса. Для проверки карты будет
               произведён тестовый холд 1 ₽, который сразу вернётся на счёт.
             </p>
-            {bindError && <p className="error" role="alert">{bindError}</p>}
+            {bindError && (
+              <div className="error bind-error-box" role="alert">
+                <p><strong>Ошибка привязки:</strong> {bindError}</p>
+              </div>
+            )}
             <button
               className="primary"
               disabled={busy}
@@ -119,8 +123,20 @@ export function CardsView() {
                     returnUrl: paymentReturnUrl('/cards?binding=return', s.publicOrigin),
                   }));
                   goPayment(data?.confirmationUrl);
-                } catch {
-                  setBindError('Не удалось открыть защищённую страницу оплаты. Проверьте соединение и попробуйте ещё раз.');
+                } catch (err: any) {
+                  const msg = String(err?.message || '');
+                  const isDomainError =
+                    err?.status === 422 ||
+                    msg.toLowerCase().includes('возврат') ||
+                    msg.toLowerCase().includes('домен') ||
+                    msg.toLowerCase().includes('redirect') ||
+                    msg.toLowerCase().includes('returnurl');
+
+                  setBindError(
+                    isDomainError
+                      ? 'Адрес возврата не разрешён в ЮKassa: домен не входит в список разрешённых в настройках магазина мерчанта. Для успешной привязки добавьте домен в личном кабинете ЮKassa или задайте переменную ALLOWED_PAYMENT_RETURN_URL.'
+                      : (msg || 'Не удалось открыть защищённую страницу оплаты. Проверьте соединение и попробуйте ещё раз.')
+                  );
                   bindLock.current = false;
                   setBusy(false);
                 }

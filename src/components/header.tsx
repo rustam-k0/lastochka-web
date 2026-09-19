@@ -11,9 +11,11 @@ import {
   ShoppingBasket,
   House,
   LayoutGrid,
+  Menu,
   Bell,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   ArrowRight,
   Trash2,
 } from 'lucide-react';
@@ -70,7 +72,7 @@ export function Header({ store }: { store: Store | null }) {
 
   const nav = [
     { href: '/', title: 'Главная', Icon: House },
-    { href: '/catalog', title: 'Каталог', Icon: LayoutGrid },
+    { href: '/catalog', title: 'Каталог', Icon: Menu },
     { href: '/favorites', title: 'Избранное', Icon: Heart },
     { href: '/profile', title: 'Профиль', Icon: UserRound },
   ];
@@ -118,7 +120,11 @@ export function Header({ store }: { store: Store | null }) {
         </div>
       </div>
 
-      <header className={`header ${innerTitle ? 'header-has-app-bar' : ''}`}>
+      <header
+        className={`header ${innerTitle ? 'header-has-app-bar' : ''} ${
+          path === '/' ? 'header-home-peach' : ''
+        }`}
+      >
         {/* Contextual Mobile App Bar on inner screens */}
         {innerTitle && (
           <div className="container mobile-app-bar">
@@ -150,7 +156,7 @@ export function Header({ store }: { store: Store | null }) {
           </Link>
 
           <Link className="catalog-button" href="/catalog">
-            <LayoutGrid size={20} /> Каталог
+            <Menu size={20} /> Каталог
           </Link>
 
           <SearchBox />
@@ -254,20 +260,24 @@ export function Header({ store }: { store: Store | null }) {
           </div>
         </div>
 
+        {/* Mobile Header Bar */}
         <div className="container mobile-address">
-          <button onClick={openStorePicker} type="button">
-            <MapPin size={17} />
-            {store?.name || 'Выберите магазин'}
-            <ChevronDown size={15} />
-          </button>
-          <Link href="/addresses">Адрес доставки →</Link>
-          <Link href="/notifications" aria-label="Уведомления">
-            <Bell size={19} />
+          <Link
+            href="/addresses"
+            className="mobile-address-capsule"
+            aria-label="Указать адрес доставки"
+          >
+            <House size={17} className="capsule-home-icon" />
+            <span className="capsule-address-text">Добавить адрес</span>
+            <ChevronRight size={15} className="capsule-chevron-icon" />
+          </Link>
+          <Link href="/notifications" className="mobile-bell-btn" aria-label="Уведомления">
+            <Bell size={20} />
           </Link>
         </div>
       </header>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation: Exactly 4 items */}
       <nav className="bottom-nav" aria-label="Основная навигация">
         {nav.map(({ href, title, Icon }) => (
           <Link
@@ -283,12 +293,11 @@ export function Header({ store }: { store: Store | null }) {
 
       <div className={`float-actions ${path === '/cart' ? 'on-cart' : ''}`} aria-label="Быстрые действия">
         <Link className="float-search-btn" href="/search" aria-label="Поиск товаров">
-          <Search size={19} /><span>Поиск</span>
+          <Search size={18} /><span>Поиск</span>
         </Link>
         <Link className="float-cart-btn" href="/cart" aria-label="Открыть корзину">
           <ShoppingBasket size={18} />
-          <span>{typeof total === 'number' && total > 0 ? money(total) : 'Корзина'}</span>
-          {items.length > 0 && <span className="float-cart-badge">{items.length}</span>}
+          <span>{typeof total === 'number' && total > 0 ? money(total) : '0 ₽'}</span>
         </Link>
       </div>
 

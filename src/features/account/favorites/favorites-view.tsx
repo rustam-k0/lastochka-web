@@ -64,12 +64,19 @@ export function FavoritesView() {
             )}
           </>
         ) : (
-          <Empty title="Любимые товары отобразятся здесь">
-            <p className="muted">Нажмите на сердечко у любого товара в каталоге, чтобы сохранить его здесь</p>
-            <Link className="primary" href="/catalog">
-              Перейти в каталог
-            </Link>
-          </Empty>
+          <div className="favorites-empty-container">
+            <div className="favorites-swallow-wrap">
+              <img
+                src="/images/swallow.webp"
+                alt="Ласточка"
+                className="favorites-swallow-img"
+                width={190}
+                height={190}
+              />
+              <div className="favorites-swallow-shadow" />
+            </div>
+            <p className="favorites-empty-text">Любимые товары отобразятся здесь</p>
+          </div>
         )}
       </RemoteState>
     </div>

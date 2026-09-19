@@ -113,6 +113,7 @@ export interface Product {
   rating?: number;
   reviewsCount: number;
   pickupOnly?: boolean;
+  availableFrom?: string;
   category?: Pick<Category, 'id' | 'name' | 'slug'>;
 }
 
@@ -397,6 +398,14 @@ export function product(v: any): Product {
     isConfigurable: truth(v.isConfigurable),
     hasSupplements: truth(v.hasSupplements),
     hasRequiredSupplements: truth(v.hasRequiredSupplements),
+    availableFrom:
+      v.availableFrom ||
+      v.available_from ||
+      v.cookingTimeFrom ||
+      v.cooking_time_from ||
+      v.cookingTime ||
+      v.cooking_time ||
+      (v.time_from ? `Доступно с ${v.time_from}` : undefined),
     reviewsCount: Number(v.reviewsCount) || 0,
   };
 }

@@ -26,20 +26,20 @@ export function getCategoryGroupColor(category: Category | string): string {
   const slug = typeof category === 'string' ? category : (category.slug || '').toLowerCase();
   const name = typeof category === 'string' ? category : (category.name || '').toLowerCase();
 
-  if (slug.includes('gotov') || name.includes('готов')) return '#F6EEE3';
-  if (slug.includes('xleb') || slug.includes('buloc') || name.includes('хлеб') || name.includes('выпеч') || name.includes('булоч')) return '#FBF6EE';
-  if (slug.includes('ovosh') || slug.includes('frukt') || name.includes('овощ') || name.includes('фрукт')) return '#EAF2EB';
-  if (slug.includes('mias') || slug.includes('ptic') || slug.includes('kolbas') || name.includes('мясо') || name.includes('птиц') || name.includes('колбас')) return '#FDEDE7';
-  if (slug.includes('ryb') || slug.includes('moreprodukt') || name.includes('рыб') || name.includes('морепродукт')) return '#EDF4F8';
-  if (slug.includes('moloc') || name.includes('молоч') || name.includes('сыр')) return '#F5F6F0';
-  if (slug.includes('sladk') || slug.includes('tort') || name.includes('сладк') || name.includes('торт')) return '#FBF0F4';
-  if (slug.includes('zamoroz') || name.includes('замороз') || name.includes('морожен')) return '#EBF5F9';
-  if (slug.includes('voda') || slug.includes('napitk') || name.includes('вод') || name.includes('напитк')) return '#EAF4F8';
-  if (slug.includes('bakale') || name.includes('бакале')) return '#F8F4EA';
-  if (slug.includes('cai') || slug.includes('kofe') || name.includes('чай') || name.includes('кофе')) return '#F5EEEB';
-  if (slug.includes('cips') || slug.includes('snek') || name.includes('чипс') || name.includes('снек')) return '#FAF2E8';
+  if (slug.includes('gotov') || name.includes('готов')) return '#fbf6ec';
+  if (slug.includes('xleb') || slug.includes('buloc') || name.includes('хлеб') || name.includes('выпеч') || name.includes('булоч')) return '#fbf6ec';
+  if (slug.includes('ovosh') || slug.includes('frukt') || name.includes('овощ') || name.includes('фрукт')) return '#eaf2eb';
+  if (slug.includes('mias') || slug.includes('ptic') || slug.includes('kolbas') || name.includes('мясо') || name.includes('птиц') || name.includes('колбас')) return '#fdede7';
+  if (slug.includes('ryb') || slug.includes('moreprodukt') || name.includes('рыб') || name.includes('морепродукт')) return '#edf4f8';
+  if (slug.includes('moloc') || name.includes('молоч') || name.includes('сыр')) return '#f5f6f0';
+  if (slug.includes('sladk') || slug.includes('tort') || name.includes('сладк') || name.includes('торт')) return '#fbf0f4';
+  if (slug.includes('zamoroz') || name.includes('замороз') || name.includes('морожен')) return '#ebf5f9';
+  if (slug.includes('voda') || slug.includes('napitk') || name.includes('вод') || name.includes('напитк')) return '#eaf4f8';
+  if (slug.includes('bakale') || name.includes('бакале')) return '#f8f4ea';
+  if (slug.includes('cai') || slug.includes('kofe') || name.includes('чай') || name.includes('кофе')) return '#f5eeeb';
+  if (slug.includes('cips') || slug.includes('snek') || name.includes('чипс') || name.includes('снек')) return '#faf2e8';
 
-  return '#F6EEE3';
+  return '#fbf6ec';
 }
 
 export function SectionHeading({

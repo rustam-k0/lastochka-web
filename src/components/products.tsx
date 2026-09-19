@@ -2,7 +2,18 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
-import { Heart, Plus, Minus, Maximize2, Share2, ArrowUpRight, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import {
+  Heart,
+  Plus,
+  Minus,
+  Maximize2,
+  Share2,
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  ArrowRight,
+  Clock,
+} from 'lucide-react';
 import {
   Product,
   CartItem,
@@ -31,8 +42,14 @@ export function ProductCard({ p }: { p: Product }) {
 
   const weightOrUnit =
     p.weight && p.weight > 0
-      ? `${p.weight} г`
+      ? `${p.weight} гр`
       : p.measurementUnitLabel || '1 шт';
+
+  const availabilityText = p.availableFrom
+    ? p.availableFrom.startsWith('Доступно')
+      ? p.availableFrom
+      : `Доступно с ${p.availableFrom}`
+    : null;
 
   return (
     <article className="product-card">
@@ -40,6 +57,11 @@ export function ProductCard({ p }: { p: Product }) {
         <Link href={'/product/' + p.id}>
           <Photo src={p.preview || undefined} alt={p.title} />
         </Link>
+        {availabilityText && (
+          <span className="availability-badge">
+            <Clock size={11} /> {availabilityText}
+          </span>
+        )}
         <Favorite p={p} />
         {p.priceOld && p.priceOld > p.price ? (
           <span className="discount">
@@ -56,12 +78,9 @@ export function ProductCard({ p }: { p: Product }) {
       </div>
 
       <div className="product-bottom">
-        <div className="product-card-price-group">
-          <span className="product-card-price">{money(p.price)}</span>
-          {p.priceOld && p.priceOld > p.price ? (
-            <span className="product-card-old-price">{money(p.priceOld)}</span>
-          ) : null}
-        </div>
+        {p.priceOld && p.priceOld > p.price ? (
+          <span className="product-card-old-price">{money(p.priceOld)}</span>
+        ) : null}
         <PillBuy p={p} onConfigure={() => setQuick(true)} />
       </div>
 

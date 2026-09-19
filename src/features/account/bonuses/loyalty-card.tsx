@@ -19,18 +19,20 @@ export function LoyaltyCard({ compact = false }: { compact?: boolean }) {
   const cardData = unwrap<LoyaltyCardDto>(remote.data);
 
   useEffect(() => {
-    if (cardData?.status === 'active' && cardData.qrPayload) {
-      QRCode.toDataURL(cardData.qrPayload, {
-        width: 480,
-        margin: 2,
-        errorCorrectionLevel: 'M',
-      })
-        .then(setQrCodeDataUrl)
-        .catch(() => setQrCodeDataUrl(''));
-    } else {
-      setQrCodeDataUrl('');
-    }
-  }, [cardData?.status, cardData?.qrPayload]);
+    const payload =
+      cardData?.status === 'active' && cardData.qrPayload
+        ? cardData.qrPayload
+        : cardData?.cardNumber
+          ? `lastochka:${cardData.cardNumber}`
+          : 'https://lastochki.store/loyalty';
+    QRCode.toDataURL(payload, {
+      width: 480,
+      margin: 1,
+      errorCorrectionLevel: 'M',
+    })
+      .then(setQrCodeDataUrl)
+      .catch(() => setQrCodeDataUrl(''));
+  }, [cardData?.status, cardData?.qrPayload, cardData?.cardNumber]);
 
   const handleCardClick = () => {
     if (!s.authenticated) {
@@ -48,47 +50,38 @@ export function LoyaltyCard({ compact = false }: { compact?: boolean }) {
 
   return (
     <>
-      <div className={`loyalty-card-wrapper ${compact ? 'compact' : ''}`}>
-        <div className={`loyalty-minimal-card ${compact ? 'compact' : ''}`}>
-          <div className="loyalty-minimal-content">
-            <div className="loyalty-minimal-header">
-              <span className="loyalty-minimal-title">
-                <Gift size={18} /> Карта «Ласточка»
-              </span>
-              {s.authenticated && cardData?.cardNumber && (
-                <span className="loyalty-card-num">№ {cardData.cardNumber}</span>
-              )}
-            </div>
-
-            <div className="loyalty-minimal-body">
-              <div className="loyalty-balance-group">
-                <strong className="loyalty-balance-val">{formattedBalance}</strong>
-                <button
-                  type="button"
-                  className="how-bonuses-link"
-                  onClick={() => setInfoModalOpen(true)}
-                >
-                  Как получить бонусы?
-                </button>
-              </div>
-
-              <div className="loyalty-minimal-action">
-                <button
-                  type="button"
-                  className="loyalty-qr-btn"
-                  onClick={handleCardClick}
-                  aria-label="Открыть QR-код карты"
-                >
-                  {qrCodeDataUrl ? (
-                    <img src={qrCodeDataUrl} alt="QR" width={44} height={44} />
-                  ) : (
-                    <QrCode size={28} />
-                  )}
-                  <span>{s.authenticated ? 'QR-код' : 'Войти'}</span>
-                </button>
+      <div className={`loyalty-native-card ${compact ? 'compact' : ''}`}>
+        <div className="loyalty-native-left">
+          <div className="loyalty-bonus-pill" onClick={handleCardClick} role="button" tabIndex={0}>
+            <div className="loyalty-bonus-info">
+              <span className="loyalty-icon-home">⌂</span>
+              <div>
+                <span className="loyalty-label-text">Бонусы</span>
+                <strong className="loyalty-number-text">{balanceNumber}</strong>
               </div>
             </div>
+            <span className="loyalty-hint-text">Копите<br />и тратьте</span>
           </div>
+
+          <Link href="/promotions" className="loyalty-promotions-pill">
+            <span className="loyalty-icon-home">⌂</span>
+            <span className="loyalty-promotions-text">Акции и промокоды</span>
+          </Link>
+        </div>
+
+        <div className="loyalty-native-right">
+          <button
+            type="button"
+            className="loyalty-qr-frame"
+            onClick={handleCardClick}
+            aria-label="QR-код карты постоянного покупателя"
+          >
+            {qrCodeDataUrl ? (
+              <img src={qrCodeDataUrl} alt="QR-код карты" className="loyalty-qr-img" width={110} height={110} />
+            ) : (
+              <QrCode size={64} />
+            )}
+          </button>
         </div>
       </div>
 

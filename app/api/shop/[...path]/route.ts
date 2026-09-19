@@ -79,11 +79,20 @@ async function handle(req: Request, ctx: { params: Promise<{ path: string[] }> }
 
     if (typeof body?.returnUrl === 'string') {
       const configuredOrigin = new URL(process.env.PUBLIC_ORIGIN || 'http://localhost:3000').origin;
+      const allowedReturnUrl = process.env.ALLOWED_PAYMENT_RETURN_URL;
       const u = new URL(body.returnUrl, configuredOrigin);
-      if (u.origin !== configuredOrigin) {
+      if (allowedReturnUrl) {
+        try {
+          const allowedOrigin = new URL(allowedReturnUrl).origin;
+          body.returnUrl = new URL(u.pathname + u.search, allowedOrigin).toString();
+        } catch {
+          body.returnUrl = u.toString();
+        }
+      } else if (u.origin !== configuredOrigin) {
         return NextResponse.json({ message: 'Недопустимый адрес возврата' }, { status: 422 });
+      } else {
+        body.returnUrl = u.toString();
       }
-      body.returnUrl = u.toString();
     }
 
     const query = new URL(req.url).search;

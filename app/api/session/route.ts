@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
-import { session, createSession, cookieName, cookieOptions } from '@/lib/session';
+import {
+  session,
+  createSession,
+  cookieName,
+  cookieOptions,
+  getAllowedPaymentOrigin,
+} from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +19,7 @@ export async function GET() {
       csrf: currentSession?.csrf || fresh?.csrf,
       storeId: currentSession?.store || Number(process.env.DEFAULT_STORE_ID) || 2,
       checkoutEnabled: process.env.CHECKOUT_ENABLED === 'true',
-      publicOrigin: process.env.PUBLIC_ORIGIN || 'http://localhost:3000',
+      publicOrigin: getAllowedPaymentOrigin(),
     },
     {
       headers: { 'Cache-Control': 'no-store, private' },
