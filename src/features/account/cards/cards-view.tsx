@@ -5,7 +5,7 @@ import { CreditCard, Plus, Trash2 } from 'lucide-react';
 import { list, unwrap, PaymentCardDto } from '@/lib/types';
 import { request } from '@/lib/client';
 import { useShop } from '@/components/shop-context';
-import { Modal } from '@/components/ui';
+import { Modal, Empty } from '@/components/ui';
 import { useRemote, RemoteState } from '../hooks/use-remote';
 import { goPayment } from '../orders/orders-view';
 
@@ -59,9 +59,17 @@ export function CardsView() {
               </div>
             ))
           ) : (
-            <div className="panel empty-panel">
-              <p className="muted">У вас пока нет сохранённых банковских карт.</p>
-            </div>
+            <Empty title="У вас пока нет сохранённых карт">
+              <p className="muted">Привяжите карту для быстрой и удобной оплаты заказов онлайн</p>
+              <button
+                className="primary"
+                onClick={() => setBindModal(true)}
+                type="button"
+                style={{ marginTop: 12 }}
+              >
+                <Plus size={18} /> Привязать карту
+              </button>
+            </Empty>
           )}
         </div>
       </RemoteState>

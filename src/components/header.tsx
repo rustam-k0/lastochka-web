@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useShop } from './shop-context';
 import { request } from '@/lib/client';
-import { list, money, cartChange, Store, CartItem } from '@/lib/types';
+import { list, money, cartChange, Store, CartItem, product } from '@/lib/types';
 import { Modal, Photo } from './ui';
 
 function getInnerScreenTitle(path: string): string | null {
@@ -54,7 +54,17 @@ export function Header({ store }: { store: Store | null }) {
     s.cart?.storeGroups?.flatMap((g) => g.items) ||
     s.cart?.dateGroups?.flatMap((g) => g.items) ||
     [];
-  const total = s.cart?.totalToPay ?? s.cart?.total;
+  const firstGroup = s.cart?.storeGroups?.[0];
+  const calculatedItemsTotal = items.reduce(
+    (acc, it) => acc + (it.price || it.product?.price || 0) * it.quantity,
+    0,
+  );
+  const total =
+    firstGroup?.totalToPay ??
+    firstGroup?.total ??
+    s.cart?.totalToPay ??
+    s.cart?.total ??
+    (calculatedItemsTotal > 0 ? calculatedItemsTotal : undefined);
 
   const innerTitle = getInnerScreenTitle(path);
 
@@ -204,23 +214,26 @@ export function Header({ store }: { store: Store | null }) {
                 {items.length > 0 ? (
                   <>
                     <div className="cart-preview-items">
-                      {items.slice(0, 5).map((it) => (
-                        <div key={it.id} className="cart-preview-item">
-                          <Photo
-                            src={it.product.preview || undefined}
-                            alt={it.product.title}
-                            width={40}
-                            height={40}
-                            className="cart-preview-photo"
-                          />
-                          <div className="cart-preview-info">
-                            <span className="cart-preview-title">{it.product.title}</span>
-                            <small className="muted">
-                              {it.quantity} шт · {money(it.price || it.product.price)}
-                            </small>
+                      {items.slice(0, 5).map((it) => {
+                        const normalized = product(it.product);
+                        return (
+                          <div key={it.id} className="cart-preview-item">
+                            <Photo
+                              src={normalized.preview || undefined}
+                              alt={normalized.title}
+                              width={40}
+                              height={40}
+                              className="cart-preview-photo"
+                            />
+                            <div className="cart-preview-info">
+                              <span className="cart-preview-title">{normalized.title}</span>
+                              <small className="muted">
+                                {it.quantity} шт · {money(it.price || normalized.price)}
+                              </small>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {items.length > 5 && (
                         <p className="cart-preview-more muted">И ещё {items.length - 5} товаров…</p>
                       )}
@@ -229,7 +242,7 @@ export function Header({ store }: { store: Store | null }) {
                     <div className="cart-preview-footer">
                       <div className="cart-preview-total">
                         <span>Итого:</span>
-                        <strong>{money(total)}</strong>
+                        <strong>{typeof total === 'number' ? money(total) : '—'}</strong>
                       </div>
                       <Link
                         href="/cart"
@@ -338,6 +351,16 @@ export function SearchBox() {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [placeholder, setPlaceholder] = useState('Искать товары...');
+
+  useEffect(() => {
+    const updatePlaceholder = () => {
+      setPlaceholder(window.innerWidth < 768 ? 'Искать товары...' : 'Поиск продуктов и блюд...');
+    };
+    updatePlaceholder();
+    window.addEventListener('resize', updatePlaceholder);
+    return () => window.removeEventListener('resize', updatePlaceholder);
+  }, []);
 
   useEffect(() => {
     if (q.trim().length < 2) {
@@ -373,7 +396,7 @@ export function SearchBox() {
       <input
         name="query"
         aria-label="Поиск товаров"
-        placeholder="Поиск продуктов и блюд..."
+        placeholder={placeholder}
         value={q}
         onChange={(e) => setQ(e.target.value)}
         minLength={2}

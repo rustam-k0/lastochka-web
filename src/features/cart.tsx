@@ -444,7 +444,7 @@ function CartContent() {
                 <legend>
                   <span className="step-number">2</span> Дата и время получения
                 </legend>
-                <div className="two-fields">
+                <div className="two-fields date-time-grid">
                   <label>
                     Дата
                     <input
@@ -690,6 +690,26 @@ function CartContent() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Sticky Checkout Bar */}
+      <div className="mobile-cart-sticky-bar">
+        <div className="mobile-cart-sticky-info">
+          <small>Итого к оплате:</small>
+          <strong>{money(total)}</strong>
+        </div>
+        <button
+          className="primary mobile-cart-sticky-btn"
+          disabled={busy || (s.authenticated && !s.checkoutEnabled)}
+          onClick={prepareOrder}
+          type="button"
+        >
+          {busy
+            ? 'Проверяем…'
+            : !s.authenticated
+              ? 'Оформить заказ'
+              : 'Оформить заказ'}
+        </button>
       </div>
 
       {reviewModal && (

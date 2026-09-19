@@ -6,7 +6,7 @@ import { MapPin, Plus, Check } from 'lucide-react';
 import { list, unwrap, cartChange, Address } from '@/lib/types';
 import { request } from '@/lib/client';
 import { useShop } from '@/components/shop-context';
-import { Modal } from '@/components/ui';
+import { Modal, Empty } from '@/components/ui';
 import { useRemote, RemoteState } from '../hooks/use-remote';
 import { AddressPickerMap, AddressCoordinates } from './address-picker-map';
 
@@ -142,9 +142,17 @@ export function AddressesView() {
           ))}
 
           {!addresses.length && (
-            <div className="panel empty-panel">
-              <p className="muted">У вас пока нет сохранённых адресов доставки.</p>
-            </div>
+            <Empty title="У вас пока нет сохранённых адресов">
+              <p className="muted">Добавьте адрес доставки, чтобы видеть точные интервалы и стоимость</p>
+              <button
+                className="primary"
+                onClick={() => startEdit({})}
+                type="button"
+                style={{ marginTop: 12 }}
+              >
+                <Plus size={18} /> Добавить адрес
+              </button>
+            </Empty>
           )}
         </div>
       </RemoteState>
