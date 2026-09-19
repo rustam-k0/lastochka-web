@@ -1,0 +1,686 @@
+[
+  {
+    "path": "auth/phone-login",
+    "method": "POST",
+    "public": true,
+    "summary": "Запрос OTP кода"
+  },
+  {
+    "path": "auth/phone-confirm",
+    "method": "POST",
+    "public": true,
+    "summary": "Подтверждение OTP кода"
+  },
+  {
+    "path": "auth/profile",
+    "method": "GET",
+    "public": false,
+    "summary": "Получение профиля"
+  },
+  {
+    "path": "auth/profile",
+    "method": "PUT",
+    "public": false,
+    "summary": "Обновление профиля"
+  },
+  {
+    "path": "auth/adult-confirm",
+    "method": "POST",
+    "public": false,
+    "summary": "Согласие 18+"
+  },
+  {
+    "path": "auth/logout",
+    "method": "POST",
+    "public": false,
+    "summary": "Выход из системы"
+  },
+  {
+    "path": "auth/change-phone",
+    "method": "POST",
+    "public": false,
+    "summary": "Смена номера — запрос OTP"
+  },
+  {
+    "path": "auth/change-phone/confirm",
+    "method": "POST",
+    "public": false,
+    "summary": "Смена номера — подтверждение OTP"
+  },
+  {
+    "path": "auth/account",
+    "method": "DELETE",
+    "public": false,
+    "summary": "Удаление аккаунта"
+  },
+  {
+    "path": "addresses",
+    "method": "GET",
+    "public": false,
+    "summary": "Список адресов"
+  },
+  {
+    "path": "addresses",
+    "method": "POST",
+    "public": false,
+    "summary": "Создать адрес"
+  },
+  {
+    "path": "addresses/active",
+    "method": "GET",
+    "public": false,
+    "summary": "Активный адрес"
+  },
+  {
+    "path": "addresses/{address}",
+    "method": "PUT",
+    "public": false,
+    "summary": "Обновить адрес"
+  },
+  {
+    "path": "addresses/{address}",
+    "method": "DELETE",
+    "public": false,
+    "summary": "Удалить адрес"
+  },
+  {
+    "path": "addresses/{address}/active",
+    "method": "PUT",
+    "public": false,
+    "summary": "Установить активный адрес"
+  },
+  {
+    "path": "addresses/{address}/photos",
+    "method": "POST",
+    "public": false,
+    "summary": "Загрузить фотографии адреса-объекта (1–6 файлов за запрос, jpg/png, до 5 МБ каждый, суммарно не более 6 на адрес).\nВозвращает 201 с обновлённым AddressResource, фотографии лежат в objectData.photos.\nДоступно только для адреса с is_object=true (иначе 422) и при включённом модуле addresses.objects (иначе 404 от middleware)"
+  },
+  {
+    "path": "addresses/{address}/photos/{photo}",
+    "method": "DELETE",
+    "public": false,
+    "summary": "Удалить фотографию адреса-объекта (soft-delete записи + физическое удаление файла с диска). 404 если фото не принадлежит указанному адресу"
+  },
+  {
+    "path": "stores",
+    "method": "GET",
+    "public": true,
+    "summary": "Список магазинов"
+  },
+  {
+    "path": "stores/nearest",
+    "method": "GET",
+    "public": true,
+    "summary": "Ближайший магазин по координатам"
+  },
+  {
+    "path": "stores/{storeId}",
+    "method": "GET",
+    "public": true,
+    "summary": "Детали магазина"
+  },
+  {
+    "path": "stores/{storeId}/bonus-settings",
+    "method": "GET",
+    "public": true,
+    "summary": "Настройки бонусной системы магазина"
+  },
+  {
+    "path": "stores/{store}/categories",
+    "method": "GET",
+    "public": true,
+    "summary": "Корневые категории магазина"
+  },
+  {
+    "path": "stores/{store}/categories/home",
+    "method": "GET",
+    "public": true,
+    "summary": "Категории на главной мобилки"
+  },
+  {
+    "path": "stores/{store}/categories/slug/{slug}",
+    "method": "GET",
+    "public": true,
+    "summary": "Категория по slug вместе с цепочкой предков"
+  },
+  {
+    "path": "stores/{store}/categories/{category}/children",
+    "method": "GET",
+    "public": true,
+    "summary": "Дочерние категории"
+  },
+  {
+    "path": "stores/{store}/categories/{category}/price-range",
+    "method": "GET",
+    "public": true,
+    "summary": "Диапазон цен в категории"
+  },
+  {
+    "path": "stores/{store}/categories/{category}/filters",
+    "method": "GET",
+    "public": true,
+    "summary": "Фильтры категории"
+  },
+  {
+    "path": "stores/{store}/categories/slug/{slug}/filters",
+    "method": "GET",
+    "public": true,
+    "summary": "Фильтры категории по slug"
+  },
+  {
+    "path": "stores/{store}/pickup-slots",
+    "method": "GET",
+    "public": false,
+    "summary": "Слоты самовывоза"
+  },
+  {
+    "path": "product-groups",
+    "method": "GET",
+    "public": true,
+    "summary": "Товарные группы для главной, поиска, корзины и фасетного каталога"
+  },
+  {
+    "path": "stores/{store}/product-groups",
+    "method": "GET",
+    "public": true,
+    "summary": "Товарные группы магазина"
+  },
+  {
+    "path": "stores/{store}/product-groups/slug/{slug}/products",
+    "method": "GET",
+    "public": true,
+    "summary": "Товары товарной группы по slug (страница группы на витрине)"
+  },
+  {
+    "path": "product-groups/{productGroup}",
+    "method": "GET",
+    "public": true,
+    "summary": "Детали товарной группы"
+  },
+  {
+    "path": "product-groups/{productGroup}/products",
+    "method": "GET",
+    "public": true,
+    "summary": "Товары товарной группы"
+  },
+  {
+    "path": "product-groups/{productGroup}/siblings",
+    "method": "GET",
+    "public": true,
+    "summary": "Похожие решения (siblings)"
+  },
+  {
+    "path": "stores/{store}/categories/{category}/products",
+    "method": "GET",
+    "public": true,
+    "summary": "Товары категории"
+  },
+  {
+    "path": "stores/{store}/categories/slug/{slug}/products",
+    "method": "GET",
+    "public": true,
+    "summary": "Товары категории по slug"
+  },
+  {
+    "path": "products/{product}",
+    "method": "GET",
+    "public": true,
+    "summary": "Детали товара"
+  },
+  {
+    "path": "products/slug/{slug}",
+    "method": "GET",
+    "public": true,
+    "summary": "Детали товара по slug (страница товара на витрине)"
+  },
+  {
+    "path": "products/{product}/similar",
+    "method": "GET",
+    "public": true,
+    "summary": "Похожие товары"
+  },
+  {
+    "path": "products/{product}/related",
+    "method": "GET",
+    "public": true,
+    "summary": "Сопутствующие товары (по соседним категориям)"
+  },
+  {
+    "path": "products/search/barcode/{barcode}",
+    "method": "GET",
+    "public": true,
+    "summary": "Поиск товара по штрихкоду"
+  },
+  {
+    "path": "cart",
+    "method": "GET",
+    "public": false,
+    "summary": "Получить корзину"
+  },
+  {
+    "path": "cart",
+    "method": "DELETE",
+    "public": false,
+    "summary": "Очистить корзину"
+  },
+  {
+    "path": "cart/items",
+    "method": "POST",
+    "public": false,
+    "summary": "Добавить товар в корзину"
+  },
+  {
+    "path": "cart/items/batch",
+    "method": "POST",
+    "public": false,
+    "summary": "Массовое добавление товаров в корзину"
+  },
+  {
+    "path": "cart/items/{cartItem}",
+    "method": "PUT",
+    "public": false,
+    "summary": "Изменить количество товара"
+  },
+  {
+    "path": "cart/items/{cartItem}",
+    "method": "DELETE",
+    "public": false,
+    "summary": "Удалить товар из корзины"
+  },
+  {
+    "path": "cart/promocode",
+    "method": "POST",
+    "public": false,
+    "summary": "Применить промокод"
+  },
+  {
+    "path": "cart/promocode",
+    "method": "DELETE",
+    "public": false,
+    "summary": "Удалить промокод"
+  },
+  {
+    "path": "cart/stores/{store}",
+    "method": "DELETE",
+    "public": false,
+    "summary": "Очистить группу магазина"
+  },
+  {
+    "path": "cart/store",
+    "method": "POST",
+    "public": false,
+    "summary": "Переключить корзину на магазин"
+  },
+  {
+    "path": "orders",
+    "method": "GET",
+    "public": false,
+    "summary": "Список заказов"
+  },
+  {
+    "path": "orders",
+    "method": "POST",
+    "public": false,
+    "summary": "Создать заказ"
+  },
+  {
+    "path": "orders/active",
+    "method": "GET",
+    "public": false,
+    "summary": "Получить последний активный заказ"
+  },
+  {
+    "path": "orders/check-supplement",
+    "method": "GET",
+    "public": false,
+    "summary": "Проверить возможность дополнения"
+  },
+  {
+    "path": "orders/{order}",
+    "method": "GET",
+    "public": false,
+    "summary": "Детали заказа"
+  },
+  {
+    "path": "orders/{order}/payment-status",
+    "method": "GET",
+    "public": false,
+    "summary": "Статус оплаты заказа"
+  },
+  {
+    "path": "orders/{order}/cancel",
+    "method": "POST",
+    "public": false,
+    "summary": "Отменить заказ"
+  },
+  {
+    "path": "orders/{order}/supplement",
+    "method": "POST",
+    "public": false,
+    "summary": "Дополнить заказ"
+  },
+  {
+    "path": "orders/{order}/pay",
+    "method": "POST",
+    "public": false,
+    "summary": "Повторная ссылка на оплату"
+  },
+  {
+    "path": "orders/{order}/refund",
+    "method": "POST",
+    "public": false,
+    "summary": "Возврат по заказу"
+  },
+  {
+    "path": "bonuses",
+    "method": "GET",
+    "public": false,
+    "summary": "История бонусных транзакций"
+  },
+  {
+    "path": "stores/{store}/delivery-slots",
+    "method": "GET",
+    "public": false,
+    "summary": "Слоты доставки"
+  },
+  {
+    "path": "payment-cards",
+    "method": "GET",
+    "public": false,
+    "summary": "Список карт пользователя"
+  },
+  {
+    "path": "payment-cards/{paymentCard}",
+    "method": "DELETE",
+    "public": false,
+    "summary": "Удалить карту"
+  },
+  {
+    "path": "payment-cards/bind",
+    "method": "POST",
+    "public": false,
+    "summary": "Привязать карту (холд 1₽)"
+  },
+  {
+    "path": "stories",
+    "method": "GET",
+    "public": true,
+    "summary": "Список историй"
+  },
+  {
+    "path": "stories/{story}",
+    "method": "GET",
+    "public": true,
+    "summary": "Детали истории"
+  },
+  {
+    "path": "stores/{store}/banners",
+    "method": "GET",
+    "public": true,
+    "summary": "Баннеры магазина"
+  },
+  {
+    "path": "orders/{order}/receipts",
+    "method": "GET",
+    "public": false,
+    "summary": "Список фискальных чеков заказа (приходы и возвраты)"
+  },
+  {
+    "path": "promotions",
+    "method": "GET",
+    "public": true,
+    "summary": "Список акций"
+  },
+  {
+    "path": "promotions/{promotion}",
+    "method": "GET",
+    "public": true,
+    "summary": "Детали акции"
+  },
+  {
+    "path": "promotions/{promotion}/products",
+    "method": "GET",
+    "public": true,
+    "summary": "Товары акции"
+  },
+  {
+    "path": "favorites",
+    "method": "GET",
+    "public": false,
+    "summary": "Список избранных товаров"
+  },
+  {
+    "path": "favorites",
+    "method": "DELETE",
+    "public": false,
+    "summary": "Массовое удаление из избранного"
+  },
+  {
+    "path": "favorites/toggle",
+    "method": "POST",
+    "public": false,
+    "summary": "Переключить избранное"
+  },
+  {
+    "path": "favorites/product-groups",
+    "method": "GET",
+    "public": false,
+    "summary": "Список избранных решений"
+  },
+  {
+    "path": "favorites/product-groups",
+    "method": "DELETE",
+    "public": false,
+    "summary": "Массовое удаление решений из избранного"
+  },
+  {
+    "path": "favorites/product-groups/toggle",
+    "method": "POST",
+    "public": false,
+    "summary": "Переключить избранное для решения"
+  },
+  {
+    "path": "brands",
+    "method": "GET",
+    "public": true,
+    "summary": "Список брендов"
+  },
+  {
+    "path": "reviews/my",
+    "method": "GET",
+    "public": false,
+    "summary": "Все мои отзывы"
+  },
+  {
+    "path": "stores/{store}/reviews",
+    "method": "GET",
+    "public": true,
+    "summary": "Отзывы магазина"
+  },
+  {
+    "path": "stores/{store}/reviews",
+    "method": "POST",
+    "public": false,
+    "summary": "Создать отзыв о магазине"
+  },
+  {
+    "path": "stores/{store}/reviews",
+    "method": "PUT",
+    "public": false,
+    "summary": "Обновить отзыв о магазине"
+  },
+  {
+    "path": "stores/{store}/reviews/my",
+    "method": "GET",
+    "public": false,
+    "summary": "Мой отзыв о магазине"
+  },
+  {
+    "path": "products/{product}/reviews",
+    "method": "GET",
+    "public": true,
+    "summary": "Отзывы о товаре"
+  },
+  {
+    "path": "products/{product}/reviews",
+    "method": "POST",
+    "public": false,
+    "summary": "Создать отзыв о товаре"
+  },
+  {
+    "path": "products/{product}/reviews",
+    "method": "PUT",
+    "public": false,
+    "summary": "Обновить отзыв о товаре"
+  },
+  {
+    "path": "products/{product}/reviews/my",
+    "method": "GET",
+    "public": false,
+    "summary": "Мой отзыв о товаре"
+  },
+  {
+    "path": "orders/{order}/review",
+    "method": "GET",
+    "public": false,
+    "summary": "Отзыв на заказ"
+  },
+  {
+    "path": "orders/{order}/review",
+    "method": "POST",
+    "public": false,
+    "summary": "Создать отзыв на заказ"
+  },
+  {
+    "path": "orders/{order}/review",
+    "method": "PUT",
+    "public": false,
+    "summary": "Обновить отзыв на заказ"
+  },
+  {
+    "path": "search/products",
+    "method": "GET",
+    "public": true,
+    "summary": "Поиск товаров"
+  },
+  {
+    "path": "search/stores/{store}/products",
+    "method": "GET",
+    "public": true,
+    "summary": "Поиск товаров в магазине"
+  },
+  {
+    "path": "search/stores/{store}/filters",
+    "method": "GET",
+    "public": true,
+    "summary": "Фильтры поиска в магазине"
+  },
+  {
+    "path": "search/suggestions",
+    "method": "GET",
+    "public": true,
+    "summary": "Подсказки для поиска"
+  },
+  {
+    "path": "search/recommendations",
+    "method": "GET",
+    "public": true,
+    "summary": "Рекомендации для экрана поиска"
+  },
+  {
+    "path": "notifications",
+    "method": "GET",
+    "public": false,
+    "summary": "Список уведомлений"
+  },
+  {
+    "path": "notifications/unread-count",
+    "method": "GET",
+    "public": false,
+    "summary": "Количество непрочитанных"
+  },
+  {
+    "path": "notifications/read-all",
+    "method": "PATCH",
+    "public": false,
+    "summary": "Пометить все прочитанными"
+  },
+  {
+    "path": "notifications/by-announcement/{announcementId}",
+    "method": "GET",
+    "public": false,
+    "summary": "Уведомление по announcement_id"
+  },
+  {
+    "path": "notifications/{notification}",
+    "method": "GET",
+    "public": false,
+    "summary": "Детальное уведомление"
+  },
+  {
+    "path": "notifications/{notification}/read",
+    "method": "PATCH",
+    "public": false,
+    "summary": "Пометить прочитанным"
+  },
+  {
+    "path": "users/me/notification-settings",
+    "method": "GET",
+    "public": false,
+    "summary": "Получить настройки уведомлений"
+  },
+  {
+    "path": "users/me/notification-settings",
+    "method": "PATCH",
+    "public": false,
+    "summary": "Обновить настройки уведомлений"
+  },
+  {
+    "path": "fcm-tokens",
+    "method": "GET",
+    "public": false,
+    "summary": "Получить список FCM токенов пользователя"
+  },
+  {
+    "path": "fcm-tokens",
+    "method": "POST",
+    "public": false,
+    "summary": "Сохранить или обновить FCM токен"
+  },
+  {
+    "path": "fcm-tokens",
+    "method": "DELETE",
+    "public": false,
+    "summary": "Удалить FCM токен"
+  },
+  {
+    "path": "client-ip",
+    "method": "GET",
+    "public": true,
+    "summary": "Текущий IP клиента и его город"
+  },
+  {
+    "path": "analytics/events",
+    "method": "POST",
+    "public": true,
+    "summary": "Принять батч поведенческих событий приложения"
+  },
+  {
+    "path": "faq",
+    "method": "GET",
+    "public": true,
+    "summary": "Вопросы и ответы"
+  },
+  {
+    "path": "app-settings",
+    "method": "GET",
+    "public": true,
+    "summary": "Настройки приложения"
+  },
+  {
+    "path": "loyalty-card",
+    "method": "GET",
+    "public": false,
+    "summary": "Карта лояльности"
+  }
+]

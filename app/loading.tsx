@@ -1,0 +1,1 @@
+export default function Loading(){return <div className="loading-page" role="status"><div className="skeleton heading"/><div className="product-grid">{Array.from({length:6},(_,i)=><div className="skeleton card" key={i}/>)}</div><p>Загружаем свежие данные магазина…</p></div>;}

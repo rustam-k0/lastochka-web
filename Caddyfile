@@ -1,3 +1,4 @@
-lastochka.duckdns.org, {$DOMAIN:lastochka.152.53.101.9.sslip.io}, :80 {
+lastochka.duckdns.org {
+	encode zstd gzip
 	reverse_proxy lastochka:3001
 }

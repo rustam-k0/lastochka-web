@@ -1,0 +1,5 @@
+import {NextResponse} from 'next/server';
+import {session,setStore} from '@/lib/session';
+import {validMutation} from '@/lib/guard';
+import {upstream,ApiError} from '@/lib/upstream';
+export async function POST(req:Request){const s=await session();if(!validMutation(req,s))return NextResponse.json({message:'Обновите страницу'},{status:403});try{const {storeId}=await req.json();if(!Number.isSafeInteger(storeId))return NextResponse.json({message:'Выберите магазин'},{status:422});const stores=await upstream('stores',{token:s!.token});if(!stores.data?.some((x:any)=>x.id===storeId&&x.isActive))return NextResponse.json({message:'Магазин недоступен для этого адреса'},{status:422});let result=null;if(s!.token)result=await upstream('cart/store',{method:'POST',body:{storeId},token:s!.token});setStore(s!,storeId);return NextResponse.json({ok:true,result},{headers:{'Cache-Control':'no-store'}});}catch(e){return NextResponse.json({message:e instanceof Error?e.message:'Ошибка выбора магазина'},{status:e instanceof ApiError?e.status:502});}}

@@ -1,30 +1,22 @@
-FROM node:22-alpine AS builder
-
+FROM node:24-bookworm-slim AS dependencies
 WORKDIR /app
-
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
+FROM dependencies AS builder
+WORKDIR /app
 COPY . .
 RUN npm run build
 
-FROM node:22-alpine AS runner
-
+FROM node:24-bookworm-slim AS runner
 WORKDIR /app
-
 ENV NODE_ENV=production
-ENV HOST=0.0.0.0
+ENV HOSTNAME=0.0.0.0
 ENV PORT=3001
-
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/server ./server
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/public ./public
-RUN mkdir -p /app/data
-
+RUN mkdir -p /app/.data && chown -R node:node /app
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+COPY --from=builder --chown=node:node /app/public ./public
+USER node
 EXPOSE 3001
-
-CMD ["npm", "run", "start"]
+CMD ["node", "server.js"]

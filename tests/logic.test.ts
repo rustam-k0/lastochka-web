@@ -1,89 +1,33 @@
-import { describe, it, expect, vi } from "vitest";
-import { totals } from "../src/features/money";
-import { validateCheckout } from "../src/features/checkout";
-import { catalog, searchProducts } from "../src/services/shop";
-import { products, categories } from "../src/data/catalog";
-vi.spyOn(catalog, "products").mockReturnValue(products);
-vi.spyOn(catalog, "categories").mockReturnValue(categories);
-const cart = ["raspberry", "khychin-potato", "khychin-cheese", "yogurt"].map(
-  (productId) => ({ productId, quantity: 1 }),
-);
-describe("Деньги", () => {
-  it("согласует сумму четырёх товаров из референса", () =>
-    expect(totals(cart, products, false)).toEqual({
-      subtotal: 103740,
-      discount: 0,
-      delivery: 0,
-      total: 103740,
-    }));
-  it("округляет скидку в копейках единожды", () =>
-    expect(totals(cart, products, true).total).toBe(93366));
-  it("корректно считает количества и пустую корзину", () => {
-    expect(
-      totals([{ productId: "yogurt", quantity: 3 }], products, false).total,
-    ).toBe(29520);
-    expect(totals([], products, true).total).toBe(0);
-  });
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import routes from '../src/config/routes.json';
+import {list,money,product,quantityLabel,step,truth,unwrap} from '../src/lib/types';
+
+test('normalizes documented and observed API wrappers',()=>{
+  assert.deepEqual(unwrap({data:{id:2}}),{id:2});
+  assert.deepEqual(list({data:[{id:2}]}),[{id:2}]);
+  assert.deepEqual(list({data:{id:2}}),[]);
 });
-describe("Оформление", () => {
-  const future = new Date();
-  future.setDate(future.getDate() + 1);
-  const slot = "delivery|" + future.toISOString().slice(0, 10) + "|10:00–12:00";
-  it("принимает заполненный заказ", () =>
-    expect(
-      validateCheckout(
-        cart,
-        products,
-        { mode: "delivery", pickupId: "", slot },
-        "Адрес",
-        true,
-      ),
-    ).toEqual({}));
-  it("проверяет получение, время и согласие", () => {
-    expect(
-      Object.keys(
-        validateCheckout(
-          cart,
-          products,
-          { mode: "pickup", pickupId: "", slot },
-          "",
-          false,
-        ),
-      ).sort(),
-    ).toEqual(["consent", "destination", "slot"]);
-  });
-  it("блокирует некорректное количество и отсутствующий товар", () => {
-    for (const row of [
-      { productId: "raspberry", quantity: 13 },
-      { productId: "unknown", quantity: 1 },
-      { productId: "yogurt", quantity: 0.5 },
-    ])
-      expect(
-        validateCheckout(
-          [row],
-          products,
-          { mode: "delivery", pickupId: "", slot },
-          "Адрес",
-          true,
-        ).cart,
-      ).toBeTruthy();
-  });
-  it("не принимает прошлую дату", () =>
-    expect(
-      validateCheckout(
-        cart,
-        products,
-        {
-          mode: "delivery",
-          pickupId: "",
-          slot: "delivery|2020-01-01|10:00–12:00",
-        },
-        "Адрес",
-        true,
-      ).slot,
-    ).toBeTruthy());
+
+test('normalizes quantity, availability and images without inventing data',()=>{
+  const p=product({id:1,storeId:2,title:'Аджика',price:'47.80',stockQuantity:'46524',quantityStep:'200',measurementUnit:'gram',measurementUnitLabel:'гр',images:[{}, {path:'https://example.test/a.webp'}],supplements:[],isConfigurable:'false'});
+  assert.equal(p.price,47.8);
+  assert.equal(step(p),200);
+  assert.equal(quantityLabel(p,step(p)),'200 гр');
+  assert.equal(p.images.length,1);
+  assert.equal(p.stockQuantity,46524);
+  assert.equal(p.isConfigurable,false);
 });
-it("поиск не зависит от регистра и ё", () => {
-  expect(searchProducts("ХЫЧИН")).toHaveLength(2);
-  expect(searchProducts("соленые").map((x) => x.id)).toContain("pickles");
+
+test('handles money and inconsistent boolean types',()=>{
+  assert.match(money(99.99),/99,99/);
+  assert.equal(money(undefined),'—');
+  for(const value of [true,1,'1','true'])assert.equal(truth(value),true);
+});
+
+test('proxy allow-list does not contain duplicate method/path pairs',()=>{
+  const keys=routes.map(route=>`${route.method} ${route.path}`);
+  assert.equal(new Set(keys).size,keys.length);
+  assert.ok(keys.includes('GET stores/{store}/categories/{category}/products'));
+  assert.ok(keys.includes('POST orders'));
 });
