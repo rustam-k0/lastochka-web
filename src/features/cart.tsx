@@ -6,18 +6,22 @@ import { useRouter } from 'next/navigation';
 import {
   ShoppingBasket,
   Trash2,
+  Share2,
   Clock,
   MapPin,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   ChevronDown,
   ShieldCheck,
   CreditCard,
   Truck,
   Store as StoreIcon,
+  Plus,
+  Minus,
 } from 'lucide-react';
 import { useShop, AuthGate } from '@/components/shop-context';
 import { Photo, Empty, ErrorMessage, Modal } from '@/components/ui';
-import { CartQuantity } from '@/components/products';
 import { paymentReturnUrl, request } from '@/lib/client';
 import {
   Cart,
@@ -29,6 +33,7 @@ import {
   unwrap,
   product,
   truth,
+  Product,
 } from '@/lib/types';
 import { useRemote } from './account/hooks/use-remote';
 import { goPayment } from './account/orders/orders-view';
@@ -57,10 +62,10 @@ function CartContent() {
     apartment: '',
   });
 
-  const [date, setDate] = useState(() =>
-    new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow' }).format(new Date()),
-  );
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow' }).format(new Date());
+  const [date, setDate] = useState(todayStr);
   const [slot, setSlot] = useState('');
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [payment, setPayment] = useState('card');
   const [comment, setComment] = useState('');
   const [promo, setPromo] = useState('');
@@ -70,6 +75,7 @@ function CartContent() {
   const [reviewModal, setReviewModal] = useState<any>();
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [localCart, setLocalCart] = useState<Cart | null>(null);
+  const [termsAgreed, setTermsAgreed] = useState(true);
 
   const lock = useRef(false);
 
@@ -90,6 +96,10 @@ function CartContent() {
 
   const slotsRemote = useRemote<any>(s.authenticated ? slotPath : null);
   const slotData = unwrap<any>(slotsRemote.data);
+
+  // Featured upsell dishes ("Фирменные блюда")
+  const featuredRemote = useRemote<any>(storeId ? `product-groups/3/products?storeId=${storeId}&perPage=8` : null);
+  const featuredProducts = list(featuredRemote.data).map(product);
 
   const paymentMethods =
     mode === 'pickup'
@@ -153,9 +163,30 @@ function CartContent() {
     }
   }
 
-  async function prepareOrder(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleShare() {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Моя корзина в Ласточке',
+          url: window.location.href,
+        });
+      } catch {
+        // User dismissed share dialog
+      }
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(window.location.href);
+      s.notice('Ссылка на корзину скопирована');
+    }
+  }
+
+  async function prepareOrder(e?: React.FormEvent) {
+    if (e) e.preventDefault();
     if (lock.current) return;
+
+    if (!termsAgreed) {
+      s.notice('Пожалуйста, подтвердите согласие с условиями использования и офертой');
+      return;
+    }
 
     if (!s.authenticated) {
       // Prompt user to log in via SMS right at the checkout confirmation step
@@ -276,297 +307,411 @@ function CartContent() {
     );
   }
 
+function formatRub(v: unknown): string {
+  if (typeof v === 'number' && Number.isFinite(v)) {
+    const hasDecimals = v % 1 !== 0;
+    return new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
+      currency: 'RUB',
+      minimumFractionDigits: hasDecimals ? 2 : 0,
+      maximumFractionDigits: 2,
+    }).format(v);
+  }
+  return '—';
+}
+
+  const selectedSlotObj = slotData?.slots?.find((sItem: any) => String(sItem.id) === String(slot));
+  const timeBannerText = selectedSlotObj
+    ? `${date === todayStr ? 'Сегодня' : date}, ${selectedSlotObj.timeSlot}`
+    : 'Выберите время';
+
+  // Common payment and summary elements to share between mobile view and desktop sidebar
+  const paymentSection = (
+    <div className="cart-payment-section">
+      <h3>Способ оплаты</h3>
+      <div className="cart-payment-list">
+        {(paymentMethods || ['card', 'cash']).map((pMethod: string) => {
+          const isSelected = payment === pMethod;
+          return (
+            <button
+              key={pMethod}
+              type="button"
+              className={`cart-payment-card ${isSelected ? 'selected' : ''}`}
+              onClick={() => setPayment(pMethod)}
+            >
+              <div className="cart-payment-left">
+                <div className="cart-payment-icon-wrap">
+                  <CreditCard size={18} />
+                </div>
+                <span>{pMethod === 'card' ? 'Выберите карту' : 'Наличными при получении'}</span>
+              </div>
+              <div className={`cart-payment-radio ${isSelected ? 'checked' : ''}`}>
+                {isSelected ? <CheckCircle2 size={20} /> : <div className="cart-empty-circle" />}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const summarySection = (
+    <div className="cart-summary-block">
+      <div className="cart-summary-line">
+        <span>Товары</span>
+        <span>{formatRub(calculatedItemsTotal)}</span>
+      </div>
+      <div className="cart-summary-line">
+        <span>Сборка</span>
+        <span className="cart-summary-free-label">бесплатно</span>
+      </div>
+      {typeof group?.deliveryCost === 'number' && group.deliveryCost > 0 && (
+        <div className="cart-summary-line">
+          <span>Доставка</span>
+          <span>{formatRub(group.deliveryCost)}</span>
+        </div>
+      )}
+      {typeof group?.discount === 'number' && group.discount > 0 && (
+        <div className="cart-summary-line">
+          <span>Скидка</span>
+          <span className="cart-summary-discount-val">−{formatRub(group.discount)}</span>
+        </div>
+      )}
+      <div className="cart-summary-line-divider" />
+      <div className="cart-summary-total-line">
+        <strong>Общая сумма заказа</strong>
+        <strong className="cart-summary-total-amount">{formatRub(total)}</strong>
+      </div>
+      <div className="cart-summary-points-hint">
+        Получите +{Math.max(1, Math.floor(total * 0.01))} баллов
+      </div>
+    </div>
+  );
+
+  const ctaSection = (
+    <div className="cart-cta-section">
+      <button
+        className="primary cart-main-cta-btn"
+        disabled={busy || (s.authenticated && !s.checkoutEnabled)}
+        type="submit"
+      >
+        {busy
+          ? 'Проверяем заказ…'
+          : !s.authenticated
+            ? 'Войти и заказать'
+            : 'Заказать'}
+      </button>
+      <button
+        type="button"
+        className="cart-terms-agreement-row"
+        onClick={() => setTermsAgreed(!termsAgreed)}
+      >
+        <div className={`cart-terms-check ${termsAgreed ? 'checked' : ''}`}>
+          {termsAgreed ? <CheckCircle2 size={18} /> : <div className="cart-empty-circle-sm" />}
+        </div>
+        <span>
+          Я согласен с{' '}
+          <Link href="/info" className="cart-terms-link" onClick={(e) => e.stopPropagation()}>
+            условиями использования
+          </Link>{' '}
+          и{' '}
+          <Link href="/info" className="cart-terms-link" onClick={(e) => e.stopPropagation()}>
+            публичной офертой
+          </Link>
+        </span>
+      </button>
+    </div>
+  );
+
   return (
     <div className="cart-page-container">
-      <div className="page-heading">
-        <div>
-          <h1>Корзина</h1>
-          <span className="muted">{items.length} позиций в заказе</span>
-        </div>
-        <button className="text-button danger" onClick={handleClearCart} type="button">
-          <Trash2 size={17} /> Очистить
+      {/* Top Header matching reference */}
+      <div className="cart-top-bar">
+        <button
+          type="button"
+          className="cart-header-back-btn"
+          onClick={() => router.back()}
+          aria-label="Назад"
+        >
+          <ChevronLeft size={24} />
         </button>
+        <h1>Корзина</h1>
+        <div className="cart-header-actions">
+          <button
+            type="button"
+            className="cart-header-icon-btn"
+            onClick={handleShare}
+            aria-label="Поделиться корзиной"
+            title="Поделиться"
+          >
+            <Share2 size={20} />
+          </button>
+          <button
+            type="button"
+            className="cart-header-icon-btn"
+            onClick={handleClearCart}
+            aria-label="Очистить корзину"
+            title="Очистить корзину"
+          >
+            <Trash2 size={20} />
+          </button>
+        </div>
       </div>
 
-      <div className="cart-layout-two-column">
-        {/* Left column: items list + step-by-step checkout form */}
-        <div className="cart-left-column">
-          {/* Cart Items List */}
-          <div className="cart-items-wrapper">
-            {groups.map((g) => (
-              <section className="panel cart-items" key={g.store.id}>
-                <div className="store-group-header">
-                  <h2>{g.store.name}</h2>
-                  {g.store.address && <span className="muted">{g.store.address}</span>}
-                </div>
-
-                <div className="items-list">
-                  {g.items.map((i) => {
-                    const normalized = product(i.product);
-                    return (
-                      <article className="cart-item" key={i.id}>
-                        <Link href={'/product/' + normalized.id} className="cart-item-photo">
-                          <Photo src={normalized.preview || undefined} alt={normalized.title} />
-                        </Link>
-                        <div className="cart-item-info">
-                          <Link href={'/product/' + normalized.id} className="cart-item-title">
-                            {normalized.title}
-                          </Link>
-                          <small className="muted">
-                            {normalized.measurementUnitLabel} · {money(i.price || normalized.price)}
-                          </small>
-                          {i.stockWarning && <p className="error">{i.stockWarning}</p>}
-                        </div>
-                        <div className="cart-item-controls">
-                          <CartQuantity itemId={i.id} p={normalized} quantity={Number(i.quantity)} />
-                          <button
-                            className="icon-button"
-                            aria-label={`Удалить ${normalized.title}`}
-                            type="button"
-                            onClick={() => s.setQuantity(i.id, 0, normalized)}
-                          >
-                            <Trash2 size={17} />
-                          </button>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
-
-          {/* Checkout Steps Form */}
-          <form className="panel checkout-steps-panel stack" onSubmit={prepareOrder}>
-            <div className="checkout-header">
-              <h2>Оформление заказа</h2>
-              {!s.authenticated && (
-                <span className="guest-badge">Гостевой режим (вход на шаге подтверждения)</span>
+      <form onSubmit={prepareOrder} className="cart-form-root">
+        <div className="cart-layout-two-column">
+          {/* Left / Main Column */}
+          <div className="cart-left-column">
+            {/* Mode Switcher: Доставка / Самовывоз */}
+            <div className="cart-mode-selector">
+              <button
+                type="button"
+                className={`cart-mode-pill ${mode === 'courier' ? 'active' : ''}`}
+                onClick={() => setMode('courier')}
+              >
+                Доставка
+              </button>
+              {group?.store?.isPickupEnabled && (
+                <button
+                  type="button"
+                  className={`cart-mode-pill ${mode === 'pickup' ? 'active' : ''}`}
+                  onClick={() => setMode('pickup')}
+                >
+                  Самовывоз
+                </button>
               )}
             </div>
 
-            {/* Step 1: Receiving method and address */}
-            <fieldset className="checkout-step">
-              <legend>
-                <span className="step-number">1</span> Способ получения
-              </legend>
+            {/* Time Slot Banner */}
+            <div className="cart-time-banner-wrap">
+              <button
+                type="button"
+                className="cart-time-banner"
+                onClick={() => setShowTimePicker(!showTimePicker)}
+              >
+                <div className="cart-time-banner-left">
+                  <Clock size={20} className="cart-time-banner-clock" />
+                  <span className="cart-time-banner-text">{timeBannerText}</span>
+                </div>
+                <ChevronRight
+                  size={20}
+                  className={`cart-time-banner-arrow ${showTimePicker ? 'open' : ''}`}
+                />
+              </button>
 
-              <div className="segmented-delivery-tabs">
-                <button
-                  type="button"
-                  className={mode === 'courier' ? 'selected' : ''}
-                  onClick={() => setMode('courier')}
-                >
-                  <Truck size={17} /> Доставка курьером
-                </button>
-                {group?.store?.isPickupEnabled && (
-                  <button
-                    type="button"
-                    className={mode === 'pickup' ? 'selected' : ''}
-                    onClick={() => setMode('pickup')}
-                  >
-                    <StoreIcon size={17} /> Самовывоз
-                  </button>
-                )}
-              </div>
-
-              {mode === 'courier' ? (
-                <div className="address-select-group stack">
-                  {s.authenticated ? (
+              {showTimePicker && (
+                <div className="cart-time-dropdown panel stack">
+                  <div className="two-fields date-time-grid">
                     <label>
-                      Адрес доставки
-                      <select
+                      Дата
+                      <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
                         required
-                        value={addressId}
-                        onChange={(e) => setAddressId(e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Интервал
+                      <select
+                        value={slot}
+                        onChange={(e) => {
+                          setSlot(e.target.value);
+                          if (e.target.value) setShowTimePicker(false);
+                        }}
+                        required
+                        disabled={!s.authenticated}
                       >
-                        <option value="">Выберите адрес доставки</option>
-                        {list<Address>(addressesRemote.data).map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {[a.city, a.street, a.houseNumber, a.apartment && `кв. ${a.apartment}`]
-                              .filter(Boolean)
-                              .join(', ')}
+                        <option value="">
+                          {!s.authenticated
+                            ? 'Будет выбран при подтверждении'
+                            : slotsRemote.loading
+                              ? 'Загружаем интервалы…'
+                              : 'Выберите время'}
+                        </option>
+                        {slotData?.slots?.map((v: any) => (
+                          <option key={v.id} value={v.id}>
+                            {v.timeSlot}
                           </option>
                         ))}
                       </select>
-                      <Link className="text-button" href="/addresses">
-                        + Добавить новый адрес
-                      </Link>
                     </label>
-                  ) : (
-                    <div className="guest-address-form stack">
-                      <p className="muted">
-                        Укажите адрес доставки. При оформлении заказа вы сможете сохранить его в профиле.
-                      </p>
-                      <div className="two-fields">
-                        <label>
-                          Город
-                          <input
-                            required
-                            value={guestAddress.city}
-                            onChange={(e) =>
-                              setGuestAddress({ ...guestAddress, city: e.target.value })
-                            }
-                          />
-                        </label>
-                        <label>
-                          Улица
-                          <input
-                            required
-                            placeholder="ул. Ленина"
-                            value={guestAddress.street}
-                            onChange={(e) =>
-                              setGuestAddress({ ...guestAddress, street: e.target.value })
-                            }
-                          />
-                        </label>
-                      </div>
-                      <div className="two-fields">
-                        <label>
-                          Дом
-                          <input
-                            required
-                            placeholder="1"
-                            value={guestAddress.house}
-                            onChange={(e) =>
-                              setGuestAddress({ ...guestAddress, house: e.target.value })
-                            }
-                          />
-                        </label>
-                        <label>
-                          Квартира
-                          <input
-                            placeholder="42"
-                            value={guestAddress.apartment}
-                            onChange={(e) =>
-                              setGuestAddress({ ...guestAddress, apartment: e.target.value })
-                            }
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="pickup-info-box">
-                  <MapPin size={18} />
-                  <div>
-                    <strong>{group?.store?.name}</strong>
-                    <p className="muted">{group?.store?.address || 'Адрес магазина'}</p>
                   </div>
                 </div>
               )}
-            </fieldset>
+            </div>
 
-            {/* Step 2: Time Slot */}
-            {(mode === 'pickup' || !truth(appSettings?.checkoutWithoutSlots)) && (
-              <fieldset className="checkout-step">
-                <legend>
-                  <span className="step-number">2</span> Дата и время получения
-                </legend>
-                <div className="two-fields date-time-grid">
-                  <label>
-                    Дата
-                    <input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      required
-                    />
-                  </label>
-
-                  <label>
-                    Интервал
+            {/* Address selector / info */}
+            {mode === 'courier' ? (
+              <div className="cart-address-compact panel">
+                {s.authenticated ? (
+                  <div className="cart-address-selector-row">
+                    <MapPin size={18} className="cart-address-icon" />
                     <select
-                      value={slot}
-                      onChange={(e) => setSlot(e.target.value)}
+                      value={addressId}
+                      onChange={(e) => setAddressId(e.target.value)}
+                      className="cart-address-select"
                       required
-                      disabled={!s.authenticated}
                     >
-                      <option value="">
-                        {!s.authenticated
-                          ? 'Будет выбран при подтверждении'
-                          : slotsRemote.loading
-                            ? 'Загружаем интервалы…'
-                            : 'Выберите время'}
-                      </option>
-                      {slotData?.slots?.map((v: any) => (
-                        <option key={v.id} value={v.id}>
-                          {v.timeSlot}
+                      <option value="">Выберите адрес доставки</option>
+                      {list<Address>(addressesRemote.data).map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {[a.city, a.street, a.houseNumber, a.apartment && `кв. ${a.apartment}`]
+                            .filter(Boolean)
+                            .join(', ')}
                         </option>
                       ))}
                     </select>
-                  </label>
-                </div>
-                {slotsRemote.error && (
-                  <ErrorMessage message={slotsRemote.error} retry={slotsRemote.reload} />
+                    <Link href="/addresses" className="cart-address-add-link" title="Добавить адрес">
+                      +
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="guest-address-form stack">
+                    <p className="muted">Адрес доставки:</p>
+                    <div className="two-fields">
+                      <input
+                        required
+                        placeholder="Город"
+                        value={guestAddress.city}
+                        onChange={(e) => setGuestAddress({ ...guestAddress, city: e.target.value })}
+                      />
+                      <input
+                        required
+                        placeholder="Улица"
+                        value={guestAddress.street}
+                        onChange={(e) => setGuestAddress({ ...guestAddress, street: e.target.value })}
+                      />
+                    </div>
+                    <div className="two-fields">
+                      <input
+                        required
+                        placeholder="Дом"
+                        value={guestAddress.house}
+                        onChange={(e) => setGuestAddress({ ...guestAddress, house: e.target.value })}
+                      />
+                      <input
+                        placeholder="Квартира"
+                        value={guestAddress.apartment}
+                        onChange={(e) => setGuestAddress({ ...guestAddress, apartment: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 )}
-              </fieldset>
+              </div>
+            ) : (
+              <div className="cart-pickup-compact panel">
+                <MapPin size={18} className="cart-address-icon" />
+                <div>
+                  <strong>{group?.store?.name || 'Магазин «Ласточка»'}</strong>
+                  <p className="muted">{group?.store?.address || 'Адрес магазина'}</p>
+                </div>
+              </div>
             )}
 
-            {/* Step 3: Contacts & Preferences */}
-            <fieldset className="checkout-step">
-              <legend>
-                <span className="step-number">3</span> Пожелания и комментарий
-              </legend>
-              <label>
-                Комментарий для сборщика и курьера
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  maxLength={1000}
-                  placeholder="Например, положите спелые бананы или позвоните за 15 минут"
+            {/* Cart Items List */}
+            <div className="cart-items-wrapper">
+              {groups.map((g) => (
+                <section className="cart-items-group" key={g.store.id}>
+                  <div className="cart-items-list">
+                    {g.items.map((i) => {
+                      const normalized = product(i.product);
+                      const unitPrice = i.price || normalized.price;
+                      const itemTotal = unitPrice * i.quantity;
+                      const stepVal = Number(normalized.quantityStep) || 1;
+                      const unitName = (normalized.measurementUnitLabel || 'шт').replace(/^[0-9.]+\s*/, '') || 'шт';
+
+                      return (
+                        <article className="cart-item-row" key={i.id}>
+                          <Link href={'/product/' + normalized.id} className="cart-item-thumb">
+                            <Photo src={normalized.preview || undefined} alt={normalized.title} />
+                          </Link>
+
+                          <div className="cart-item-middle">
+                            <Link href={'/product/' + normalized.id} className="cart-item-name">
+                              {normalized.title}
+                            </Link>
+                            <div className="cart-item-unit-badge">
+                              {formatRub(unitPrice)} / {normalized.measurementUnitLabel}
+                            </div>
+                            {i.stockWarning && <p className="error">{i.stockWarning}</p>}
+                          </div>
+
+                          <div className="cart-item-right">
+                            <div className="cart-item-bold-price">{formatRub(itemTotal)}</div>
+                            <div className="cart-item-stepper">
+                              <button
+                                type="button"
+                                aria-label="Уменьшить"
+                                onClick={() =>
+                                  s.setQuantity(i.id, Math.max(0, i.quantity - stepVal), normalized)
+                                }
+                              >
+                                <Minus size={13} />
+                              </button>
+                              <span className="cart-item-stepper-val">
+                                {i.quantity} {unitName}
+                              </span>
+                              <button
+                                type="button"
+                                aria-label="Увеличить"
+                                onClick={() =>
+                                  s.setQuantity(i.id, i.quantity + stepVal, normalized)
+                                }
+                              >
+                                <Plus size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+
+            {/* Comment to packer */}
+            <div className="cart-comment-card">
+              <label htmlFor="cart-comment-text" className="cart-comment-label">
+                Комментарий сборщику
+              </label>
+              <textarea
+                id="cart-comment-text"
+                className="cart-comment-textarea"
+                rows={2}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Пиццу очень ждём тёпленькой! :)"
+                maxLength={1000}
+              />
+            </div>
+
+            {/* Free Packaging Banner */}
+            <div className="cart-packaging-banner">
+              <div className="cart-packaging-content">
+                <strong>Мы всё аккуратно упакуем в пакеты</strong>
+                <p>Все пакеты бесплатно!</p>
+              </div>
+              <div className="cart-packaging-image">
+                <img src="/images/swallow.webp" alt="Ласточка" width={68} height={54} />
+              </div>
+            </div>
+
+            {/* Promo code */}
+            <div className="cart-promo-card">
+              <div className="cart-promo-input-row">
+                <input
+                  type="text"
+                  value={promo}
+                  onChange={(e) => setPromo(e.target.value)}
+                  placeholder="У меня есть промокод!"
+                  maxLength={50}
                 />
-              </label>
-
-              {Array.isArray(appSettings?.checkoutOptions) &&
-                appSettings.checkoutOptions.map((o: any) => (
-                  <label className="check" key={o.code}>
-                    <input
-                      type="checkbox"
-                      checked={selectedOptions.includes(o.code)}
-                      onChange={(e) =>
-                        setSelectedOptions(
-                          e.target.checked
-                            ? [...selectedOptions, o.code]
-                            : selectedOptions.filter((x) => x !== o.code),
-                        )
-                      }
-                    />
-                    <span>{o.label}</span>
-                  </label>
-                ))}
-            </fieldset>
-
-            {/* Step 4: Payment, Promocode and Bonuses */}
-            <fieldset className="checkout-step">
-              <legend>
-                <span className="step-number">4</span> Оплата и выгода
-              </legend>
-
-              <label>
-                Способ оплаты
-                <select value={payment} onChange={(e) => setPayment(e.target.value)}>
-                  {(paymentMethods || ['card', 'cash']).map((pMethod: string) => (
-                    <option value={pMethod} key={pMethod}>
-                      {pMethod === 'cash' ? 'Наличными при получении' : 'Банковской картой онлайн'}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                Промокод
-                <div className="inline-field">
-                  <input
-                    value={promo}
-                    maxLength={50}
-                    onChange={(e) => setPromo(e.target.value)}
-                    placeholder="Введите промокод"
-                  />
+                {promo.trim() && (
                   <button
                     type="button"
-                    className="secondary"
+                    className="cart-promo-apply-btn"
                     onClick={() =>
                       s.run(async () => {
                         await request('cart/promocode', 'POST', {
@@ -580,9 +725,8 @@ function CartContent() {
                   >
                     Применить
                   </button>
-                </div>
-              </label>
-
+                )}
+              </div>
               {group?.promocode && (
                 <button
                   className="text-button"
@@ -597,7 +741,91 @@ function CartContent() {
                   Удалить применённый промокод
                 </button>
               )}
+            </div>
 
+            {/* Checkout Options ("Позвонить если товара нет в наличии") */}
+            {Array.isArray(appSettings?.checkoutOptions) &&
+              appSettings.checkoutOptions.map((o: any) => {
+                const isSelected = selectedOptions.includes(o.code);
+                return (
+                  <button
+                    key={o.code}
+                    type="button"
+                    className={`cart-option-pill-card ${isSelected ? 'active' : ''}`}
+                    onClick={() =>
+                      setSelectedOptions(
+                        isSelected
+                          ? selectedOptions.filter((x) => x !== o.code)
+                          : [...selectedOptions, o.code],
+                      )
+                    }
+                  >
+                    <span>{o.label}</span>
+                    <div className={`cart-option-check-circle ${isSelected ? 'checked' : ''}`}>
+                      {isSelected ? <CheckCircle2 size={20} /> : <div className="cart-empty-circle" />}
+                    </div>
+                  </button>
+                );
+              })}
+
+            {/* Featured Upsell Carousel ("Фирменные блюда >") */}
+            {featuredProducts.length > 0 && (
+              <section className="cart-upsell-section">
+                <Link href="/collection/firmennye-bliuda" className="cart-upsell-header">
+                  <h2>Фирменные блюда</h2>
+                  <ChevronRight size={20} />
+                </Link>
+                <div className="cart-upsell-track">
+                  {featuredProducts.map((fp: Product) => {
+                    const norm = fp;
+                    return (
+                      <article key={norm.id} className="cart-upsell-card">
+                        <div className="cart-upsell-image-wrap">
+                          <Photo src={norm.preview || undefined} alt={norm.title} />
+                          {norm.availableFrom && (
+                            <span className="cart-upsell-avail-badge">
+                              <Clock size={10} /> Доступн...
+                            </span>
+                          )}
+                        </div>
+                        <Link href={`/product/${norm.id}`} className="cart-upsell-name">
+                          {norm.title}
+                        </Link>
+                        <span className="cart-upsell-measure">
+                          {norm.quantityStep ? `${norm.quantityStep} ${norm.measurementUnitLabel}` : norm.measurementUnitLabel}
+                        </span>
+                        <div className="cart-upsell-btn-wrap">
+                          <button
+                            type="button"
+                            className="cart-upsell-add-btn"
+                            onClick={() => void s.add(norm)}
+                            aria-label={`Добавить ${norm.title}`}
+                          >
+                            <span>{money(norm.price)}</span>
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* On mobile: Payment, Summary and CTA follow right in column */}
+            <div className="cart-mobile-bottom-flow">
+              {paymentSection}
+              {summarySection}
+              {ctaSection}
+            </div>
+          </div>
+
+          {/* Right Column (Sticky on Desktop) */}
+          <div className="cart-right-column">
+            <div className="sticky-order-summary panel">
+              {paymentSection}
+
+              {/* Bonus Earn / Spend */}
               {s.authenticated && group?.bonus?.isEnabled && (
                 <div className="bonus-checkout-block">
                   <div className="segmented">
@@ -633,105 +861,20 @@ function CartContent() {
                   )}
                 </div>
               )}
-            </fieldset>
 
-            <button
-              className="primary submit-checkout-mobile-btn"
-              disabled={busy || (s.authenticated && !s.checkoutEnabled)}
-              type="submit"
-            >
-              {busy
-                ? 'Проверяем заказ…'
-                : !s.authenticated
-                  ? 'Войти и продолжить оформление'
-                  : 'Подтвердить и оформить заказ'}
-            </button>
-          </form>
-        </div>
+              {summarySection}
+              {ctaSection}
 
-        {/* Right column: Sticky Order Summary */}
-        <div className="cart-right-column">
-          <div className="sticky-order-summary panel">
-            <h3>Ваш заказ</h3>
-
-            <div className="summary-items-preview">
-              {items.slice(0, 4).map((it) => (
-                <div key={it.id} className="summary-mini-item">
-                  <span>{it.product.title}</span>
-                  <strong>{money((it.price || it.product.price) * it.quantity)}</strong>
-                </div>
-              ))}
-              {items.length > 4 && (
-                <small className="muted">и ещё {items.length - 4} позиций…</small>
-              )}
-            </div>
-
-            <dl className="totals">
-              {typeof group?.deliveryCost === 'number' && (
-                <>
-                  <dt>Доставка</dt>
-                  <dd>{money(group.deliveryCost)}</dd>
-                </>
-              )}
-              {typeof group?.assemblyCost === 'number' && (
-                <>
-                  <dt>Сборка</dt>
-                  <dd>{money(group.assemblyCost)}</dd>
-                </>
-              )}
-              {typeof group?.discount === 'number' && group.discount > 0 && (
-                <>
-                  <dt>Скидка</dt>
-                  <dd className="accent">−{money(group.discount)}</dd>
-                </>
-              )}
-              <dt className="grand-total-dt">Итого к оплате</dt>
-              <dd className="grand-total-dd">
-                <strong>{money(total)}</strong>
-              </dd>
-            </dl>
-
-            <button
-              className="primary checkout-sticky-btn"
-              disabled={busy || (s.authenticated && !s.checkoutEnabled)}
-              onClick={prepareOrder}
-              type="button"
-            >
-              {busy
-                ? 'Проверяем заказ…'
-                : !s.authenticated
-                  ? 'Оформить заказ'
-                  : 'Проверить и оформить'}
-            </button>
-
-            <div className="security-notice">
-              <ShieldCheck size={16} />
-              <span>Безопасная оплата картой или при получении</span>
+              <div className="security-notice">
+                <ShieldCheck size={16} />
+                <span>Безопасная оплата картой или при получении</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </form>
 
-      {/* Mobile Sticky Checkout Bar */}
-      <div className="mobile-cart-sticky-bar">
-        <div className="mobile-cart-sticky-info">
-          <small>Итого к оплате:</small>
-          <strong>{money(total)}</strong>
-        </div>
-        <button
-          className="primary mobile-cart-sticky-btn"
-          disabled={busy || (s.authenticated && !s.checkoutEnabled)}
-          onClick={prepareOrder}
-          type="button"
-        >
-          {busy
-            ? 'Проверяем…'
-            : !s.authenticated
-              ? 'Оформить заказ'
-              : 'Оформить заказ'}
-        </button>
-      </div>
-
+      {/* Review Modal */}
       {reviewModal && (
         <Modal title="Подтверждение заказа" onClose={() => setReviewModal(undefined)}>
           <div className="stack confirm-order-modal">

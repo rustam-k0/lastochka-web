@@ -27,7 +27,6 @@ import { Modal, Photo } from './ui';
 function getInnerScreenTitle(path: string): string | null {
   if (path === '/profile') return 'Профиль';
   if (path.startsWith('/profile/settings')) return 'Настройки';
-  if (path === '/cart') return 'Корзина';
   if (path === '/favorites') return 'Избранное';
   if (path.startsWith('/orders')) return 'Мои заказы';
   if (path.startsWith('/addresses')) return 'Адреса доставки';
