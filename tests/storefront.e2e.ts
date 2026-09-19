@@ -116,6 +116,17 @@ test('mobile landscape and 200 percent text remain usable',async({page},testInfo
   await expect(page.locator('.product-card').first()).toBeVisible();
 });
 
+test('mobile shell has four tabs and separate search and cart actions',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='mobile-chromium');
+  await page.goto('/');
+  await expect(page.locator('.bottom-nav a')).toHaveCount(4);
+  await expect(page.locator('.bottom-nav').getByText('Корзина')).toHaveCount(0);
+  await expect(page.getByRole('link',{name:'Поиск товаров'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Открыть корзину'})).toBeVisible();
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+  expect(overflow).toBe(0);
+});
+
 test('search suggestions and login dialog work from the keyboard',async({page})=>{
   await page.goto('/');
   const search=page.getByRole('combobox',{name:'Поиск товаров'});

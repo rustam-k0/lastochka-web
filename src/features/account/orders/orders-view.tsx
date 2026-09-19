@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { Package, ChevronRight, FileText, RefreshCw, AlertCircle } from 'lucide-react';
 import { list, unwrap, money, OrderDto, OrderItemDto } from '@/lib/types';
-import { request } from '@/lib/client';
+import { paymentReturnUrl, request } from '@/lib/client';
 import { useShop } from '@/components/shop-context';
 import { Empty, ErrorMessage } from '@/components/ui';
 import { useRemote, RemoteState } from '../hooks/use-remote';
@@ -171,7 +171,7 @@ export function OrdersView({
                       onClick={() =>
                         s.run(async () => {
                           const result = await request<any>(`orders/${id}/pay`, 'POST', {
-                            returnUrl: `${location.origin}/payment?orderId=${id}`,
+                            returnUrl: paymentReturnUrl(`/payment?orderId=${id}`, s.publicOrigin),
                           });
                           goPayment(result.confirmationUrl);
                         })

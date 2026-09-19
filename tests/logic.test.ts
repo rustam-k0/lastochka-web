@@ -2,6 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import routes from '../src/config/routes.json';
 import {list,money,product,quantityLabel,step,truth,unwrap,normalizeMedia,categoryMedia,cartItems,cartChange,activeStoreId} from '../src/lib/types';
+import {paymentReturnUrl} from '../src/lib/client';
+
+test('payment callbacks always use the configured canonical origin',()=>{
+  assert.equal(paymentReturnUrl('/cards?binding=return','https://lastochka.duckdns.org'), 'https://lastochka.duckdns.org/cards?binding=return');
+  assert.equal(paymentReturnUrl('/payment','http://127.0.0.1:3000'), 'http://127.0.0.1:3000/payment');
+  assert.throws(()=>paymentReturnUrl('/cards','javascript:alert(1)'),/безопасный адрес/);
+});
 
 test('normalizes documented and observed API wrappers',()=>{
   assert.deepEqual(unwrap({data:{id:2}}),{id:2});
@@ -103,4 +110,3 @@ test('guest cart stores items, recalculates totals, and updates quantities',()=>
   delete (globalThis as any).window;
   delete (globalThis as any).localStorage;
 });
-

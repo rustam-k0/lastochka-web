@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, ReactNode } from 'react';
 import Image from 'next/image';
-import { X, PackageOpen, LoaderCircle } from 'lucide-react';
+import { X, ImageIcon, LoaderCircle } from 'lucide-react';
 
 export interface PhotoProps {
   src?: string | null;
@@ -43,8 +43,8 @@ export function Photo({
   if (!current || hasError) {
     return (
       <div className={`photo-placeholder ${className}`} role="img" aria-label={alt || 'Фото пока нет'}>
-        <PackageOpen size={38} />
-        <span>Фото пока нет</span>
+        <ImageIcon size={30} strokeWidth={1.5} />
+        <span>Фото скоро</span>
       </div>
     );
   }

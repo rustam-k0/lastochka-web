@@ -78,8 +78,9 @@ async function handle(req: Request, ctx: { params: Promise<{ path: string[] }> }
     }
 
     if (typeof body?.returnUrl === 'string') {
-      const u = new URL(body.returnUrl, process.env.PUBLIC_ORIGIN);
-      if (u.origin !== process.env.PUBLIC_ORIGIN) {
+      const configuredOrigin = new URL(process.env.PUBLIC_ORIGIN || 'http://localhost:3000').origin;
+      const u = new URL(body.returnUrl, configuredOrigin);
+      if (u.origin !== configuredOrigin) {
         return NextResponse.json({ message: 'Недопустимый адрес возврата' }, { status: 422 });
       }
       body.returnUrl = u.toString();

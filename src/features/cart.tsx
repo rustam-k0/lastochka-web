@@ -18,7 +18,7 @@ import {
 import { useShop, AuthGate } from '@/components/shop-context';
 import { Photo, Empty, ErrorMessage, Modal } from '@/components/ui';
 import { CartQuantity } from '@/components/products';
-import { request } from '@/lib/client';
+import { paymentReturnUrl, request } from '@/lib/client';
 import {
   Cart,
   CartItem,
@@ -225,7 +225,7 @@ function CartContent() {
           bonusAction: bonus,
           ...(bonus === 'spend' ? { bonusSpendAmount: Math.round(Number(spend) * 100) } : {}),
           checkoutOptions: selectedOptions,
-          returnUrl: location.origin + '/payment',
+          returnUrl: paymentReturnUrl('/payment', s.publicOrigin),
         };
 
         const fingerprint = JSON.stringify(payload);

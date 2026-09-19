@@ -7,6 +7,13 @@ export interface BrowserSessionData {
   csrf: string;
   storeId: number;
   checkoutEnabled: boolean;
+  publicOrigin: string;
+}
+
+export function paymentReturnUrl(path: string, publicOrigin: string): string {
+  const origin = new URL(publicOrigin);
+  if (!/^https?:$/.test(origin.protocol)) throw new Error('Не настроен безопасный адрес возврата');
+  return new URL(path, `${origin.origin}/`).toString();
 }
 
 export async function browserSession(): Promise<BrowserSessionData> {

@@ -31,6 +31,7 @@ export interface ShopContextValue {
   setQuantity: (id: number, n: number, p?: Product) => Promise<void>;
   logout: () => Promise<void>;
   checkoutEnabled: boolean;
+  publicOrigin: string;
 }
 
 const Context = createContext<ShopContextValue>(null!);
@@ -46,12 +47,14 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const [authOpen, setAuthOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [checkoutEnabled, setCheckout] = useState(false);
+  const [publicOrigin, setPublicOrigin] = useState('');
 
   const refresh = useCallback(async () => {
     try {
       const sessionData = await browserSession();
       setAuth(sessionData.authenticated);
       setCheckout(sessionData.checkoutEnabled);
+      setPublicOrigin(sessionData.publicOrigin);
       setReady(true);
 
       if (sessionData.authenticated) {
@@ -191,6 +194,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
         setQuantity,
         logout,
         checkoutEnabled,
+        publicOrigin,
       }}
     >
       {children}

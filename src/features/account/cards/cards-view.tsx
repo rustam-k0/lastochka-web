@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { CreditCard, Plus, Trash2 } from 'lucide-react';
 import { list, unwrap, PaymentCardDto } from '@/lib/types';
-import { request } from '@/lib/client';
+import { paymentReturnUrl, request } from '@/lib/client';
 import { useShop } from '@/components/shop-context';
 import { Modal, Empty } from '@/components/ui';
 import { useRemote, RemoteState } from '../hooks/use-remote';
@@ -14,6 +15,28 @@ export function CardsView() {
   const s = useShop();
   const [bindModal, setBindModal] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [bindError, setBindError] = useState('');
+  const bindLock = useRef(false);
+  const params = useSearchParams();
+
+  useEffect(() => {
+    const returned = params.get('binding') || params.get('status');
+    if (!returned) return;
+    void remote.reload();
+    const normalized = returned.toLowerCase();
+    if (['success', 'succeeded', 'paid', 'return'].includes(normalized)) {
+      s.notice('Проверяем привязку карты. Список обновлён.');
+    } else if (['cancel', 'cancelled', 'canceled'].includes(normalized)) {
+      s.notice('Привязка карты отменена');
+    } else if (['expired', 'timeout'].includes(normalized)) {
+      s.notice('Время привязки карты истекло. Попробуйте ещё раз.');
+    } else if (['error', 'failed'].includes(normalized)) {
+      setBindModal(true);
+      setBindError('Не удалось привязать карту. Попробуйте ещё раз.');
+    }
+  // The URL is the provider's one-shot return signal.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
 
   const cards = list<PaymentCardDto>(remote.data);
 
@@ -75,31 +98,33 @@ export function CardsView() {
       </RemoteState>
 
       {bindModal && (
-        <Modal title="Привязать банковскую карту" onClose={() => setBindModal(false)}>
+        <Modal title="Привязать банковскую карту" onClose={() => { setBindModal(false); setBindError(''); }}>
           <div className="stack">
             <p>
               Вы перейдёте на защищённую страницу платёжного сервиса. Для проверки карты будет
               произведён тестовый холд 1 ₽, который сразу вернётся на счёт.
             </p>
+            {bindError && <p className="error" role="alert">{bindError}</p>}
             <button
               className="primary"
               disabled={busy}
               type="button"
-              onClick={() =>
-                s.run(async () => {
-                  setBusy(true);
-                  try {
-                    const data = unwrap<any>(
-                      await request('payment-cards/bind', 'POST', {
-                        returnUrl: `${location.origin}/cards`,
-                      }),
-                    );
-                    goPayment(data.confirmationUrl);
-                  } finally {
-                    setBusy(false);
-                  }
-                })
-              }
+              onClick={async () => {
+                if (bindLock.current) return;
+                bindLock.current = true;
+                setBusy(true);
+                setBindError('');
+                try {
+                  const data = unwrap<any>(await request('payment-cards/bind', 'POST', {
+                    returnUrl: paymentReturnUrl('/cards?binding=return', s.publicOrigin),
+                  }));
+                  goPayment(data?.confirmationUrl);
+                } catch {
+                  setBindError('Не удалось открыть защищённую страницу оплаты. Проверьте соединение и попробуйте ещё раз.');
+                  bindLock.current = false;
+                  setBusy(false);
+                }
+              }}
             >
               {busy ? 'Переходим…' : 'Перейти к привязке карты'}
             </button>

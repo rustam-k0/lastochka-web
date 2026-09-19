@@ -71,7 +71,6 @@ export function Header({ store }: { store: Store | null }) {
   const nav = [
     { href: '/', title: 'Главная', Icon: House },
     { href: '/catalog', title: 'Каталог', Icon: LayoutGrid },
-    { href: '/cart', title: 'Корзина', Icon: ShoppingBasket },
     { href: '/favorites', title: 'Избранное', Icon: Heart },
     { href: '/profile', title: 'Профиль', Icon: UserRound },
   ];
@@ -281,6 +280,17 @@ export function Header({ store }: { store: Store | null }) {
           </Link>
         ))}
       </nav>
+
+      <div className={`float-actions ${path === '/cart' ? 'on-cart' : ''}`} aria-label="Быстрые действия">
+        <Link className="float-search-btn" href="/search" aria-label="Поиск товаров">
+          <Search size={19} /><span>Поиск</span>
+        </Link>
+        <Link className="float-cart-btn" href="/cart" aria-label="Открыть корзину">
+          <ShoppingBasket size={18} />
+          <span>{typeof total === 'number' && total > 0 ? money(total) : 'Корзина'}</span>
+          {items.length > 0 && <span className="float-cart-badge">{items.length}</span>}
+        </Link>
+      </div>
 
       {chooseStoreOpen && (
         <Modal title="Выбор магазина" onClose={() => setChooseStoreOpen(false)}>

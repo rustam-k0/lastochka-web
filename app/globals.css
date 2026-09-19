@@ -589,7 +589,7 @@ legend { padding-inline: 5px; font-weight: 700; }
     transform: translateY(-8px) rotate(-1.5deg);
   }
 }
-.photo-placeholder { min-height: 110px; display: grid; place-items: center; align-content: center; gap: 7px; background: #f1f0ee; color: #aaa; font-size: 12px; }
+.photo-placeholder { min-height: 110px; display: grid; place-items: center; align-content: center; gap: 7px; background: linear-gradient(145deg, #fff7f8, #f7f4f2); color: #ad7c82; font-size: 12px; }
 .qr-panel { text-align: center; }
 .qr-panel img { width: min(320px, 100%); margin: auto; }
 video { width: 100%; border-radius: var(--radius); }
@@ -1283,13 +1283,30 @@ fieldset.checkout-step,
   .float-actions {
     position: fixed;
     z-index: 85;
-    right: 16px;
-    left: auto;
+    right: 14px;
+    left: 14px;
     bottom: calc(var(--bottom-nav-height, 62px) + var(--safe-bottom) + 12px);
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     pointer-events: none;
+  }
+  .float-search-btn {
+    pointer-events: auto;
+    min-width: 88px;
+    min-height: 44px;
+    padding: 0 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border-radius: 999px;
+    background: rgb(41 41 41 / 78%);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
+    backdrop-filter: blur(12px);
   }
   .float-cart-btn {
     pointer-events: auto;
@@ -1784,10 +1801,12 @@ button, [role="button"], input, select { min-height: var(--control-size); }
     white-space: nowrap !important;
     border: 0 !important;
   }
-  .bottom-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .bottom-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .bottom-nav a { min-width: 0; }
   .bottom-nav a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-  .float-actions { display: none !important; }
+  .float-actions { display: flex !important; }
+  .float-actions.on-cart .float-cart-btn { display: none; }
+  .float-actions.on-cart { justify-content: flex-start; }
   .mobile-address { gap: 4px; }
   .mobile-address > a { padding-inline: 8px; white-space: nowrap; }
   .mobile-address button { min-height: var(--control-size); text-overflow: ellipsis; }
@@ -1885,6 +1904,11 @@ button, [role="button"], input, select { min-height: var(--control-size); }
   .settings-form textarea, .address-form input, .address-form select, .address-form textarea { max-width: 100%; }
   .account-section, .stack { min-width: 0; }
   .section-header { align-items: stretch; }
+}
+
+@media (min-width: 561px) {
+  .bottom-nav, .float-actions { display: none !important; }
+  body { padding-bottom: 0; }
 }
 
 @media (max-width: 479px) {
