@@ -1,5 +1,42 @@
 import {test,expect} from '@playwright/test';
 
+const referenceViewports = [
+  [320,568],[360,800],[375,812],[390,844],[430,932],
+  [768,1024],[820,1180],[1024,768],[1280,800],[1440,900],[1920,1080],
+] as const;
+
+async function assertResponsivePage(page: import('@playwright/test').Page, path: string) {
+  await page.goto(path, {waitUntil:'networkidle'});
+  const metrics=await page.evaluate(()=>{
+    const interactive=[...document.querySelectorAll<HTMLElement>('button,a,input,select,textarea')];
+    const visible=(el:HTMLElement)=>{
+      const r=el.getBoundingClientRect();
+      const s=getComputedStyle(el);
+      return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight;
+    };
+    const outside=interactive.filter((el)=>{
+      if(!visible(el)||el.closest('.product-carousel-track,.subcategory-pills-scroll,.stories,.thumbnails')) return false;
+      const r=el.getBoundingClientRect();
+      return r.left < -1 || r.right > innerWidth + 1;
+    });
+    const tooSmall=interactive.filter((el)=>{
+      if(!visible(el)||el.matches('.product-title,.breadcrumbs a,.footer-brand,input[type="checkbox"],input[type="radio"]')) return false;
+      const r=el.getBoundingClientRect();
+      return r.width<43.5||r.height<43.5;
+    });
+    return {
+      overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
+      h1:document.querySelectorAll('h1').length,
+      outside:outside.map((el)=>el.getAttribute('aria-label')||el.textContent?.trim()).slice(0,5),
+      tooSmall:tooSmall.map((el)=>el.getAttribute('aria-label')||el.textContent?.trim()).slice(0,8),
+    };
+  });
+  expect(metrics.overflow,`${path}: horizontal overflow`).toBe(0);
+  expect(metrics.h1,`${path}: exactly one semantic h1`).toBe(1);
+  expect(metrics.outside,`${path}: controls outside viewport`).toEqual([]);
+  expect(metrics.tooSmall,`${path}: undersized controls`).toEqual([]);
+}
+
 test('home, catalog, search and product links use live store data',async({page})=>{
   const errors:string[]=[];
   page.on('pageerror',error=>errors.push(error.message));
@@ -51,4 +88,68 @@ test('anonymous personal pages request login instead of exposing data',async({pa
   await expect(page.getByRole('button',{name:'Войти по телефону'})).toBeVisible();
   await page.goto('/favorites');
   await expect(page.getByRole('button',{name:'Войти по телефону'})).toBeVisible();
+});
+
+test('responsive invariants hold at all required viewport widths',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='desktop-chromium');
+  test.setTimeout(180_000);
+  const routes=[
+    '/','/catalog','/category/goriacie-bliuda','/collection/nasa-vypecka',
+    '/search?query=молоко','/product/221','/cart','/profile','/profile/settings',
+    '/favorites','/orders','/addresses','/cards','/bonuses','/notifications',
+    '/promotions','/stories','/faq','/info',
+  ];
+  for(const [width,height] of referenceViewports){
+    await page.setViewportSize({width,height});
+    for(const route of routes) await assertResponsivePage(page,route);
+  }
+});
+
+test('mobile landscape and 200 percent text remain usable',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='mobile-chromium');
+  await page.setViewportSize({width:844,height:390});
+  await page.goto('/');
+  await page.evaluate(()=>document.documentElement.style.fontSize='200%');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth)).toBe(0);
+  await expect(page.getByRole('link',{name:/Открыть каталог/})).toBeVisible();
+  await page.goto('/search?query=молоко');
+  await expect(page.locator('.product-card').first()).toBeVisible();
+});
+
+test('search suggestions and login dialog work from the keyboard',async({page})=>{
+  await page.goto('/');
+  const search=page.getByRole('combobox',{name:'Поиск товаров'});
+  await search.focus();
+  await search.fill('молоко');
+  const listbox=page.getByRole('listbox',{name:'Подсказки поиска'});
+  await expect(listbox).toBeVisible();
+  await search.press('ArrowDown');
+  await expect(search).toHaveAttribute('aria-activedescendant',/.+/);
+  await search.press('Escape');
+  await expect(listbox).toBeHidden();
+
+  await page.goto('/profile');
+  await page.getByRole('button',{name:'Войти по телефону'}).click();
+  const dialog=page.getByRole('dialog',{name:'Рады вас видеть'});
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+});
+
+test('representative pages keep stable screenshots',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='desktop-chromium');
+  const widths=[[390,844,'mobile'],[768,1024,'tablet'],[1440,900,'desktop']] as const;
+  const routes=[['home','/'],['catalog','/catalog'],['search','/search?query=молоко'],['product','/product/221'],['cart','/cart'],['profile','/profile']] as const;
+  for(const [width,height,label] of widths){
+    await page.setViewportSize({width,height});
+    for(const [name,path] of routes){
+      await page.goto(path,{waitUntil:'networkidle'});
+      await expect(page).toHaveScreenshot(`${label}-${name}.png`,{
+        fullPage:true,
+        animations:'disabled',
+        mask:[page.locator('img')],
+        maxDiffPixelRatio:0.02,
+      });
+    }
+  }
 });

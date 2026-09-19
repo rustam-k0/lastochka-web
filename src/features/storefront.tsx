@@ -564,7 +564,7 @@ export async function ProductPage({ id }: { id: string }) {
         <span>{p.title}</span>
       </div>
 
-      <ProductDetail p={p} />
+      <ProductDetail p={p} stickyBuy />
       <Reviews productId={p.id} />
 
       {similar.length > 0 && (

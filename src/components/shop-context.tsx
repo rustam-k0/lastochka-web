@@ -8,7 +8,7 @@ import {
   ReactNode,
   useCallback,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { request, browserSession } from '@/lib/client';
 import { Product, Cart, unwrap } from '@/lib/types';
 import {
@@ -39,6 +39,7 @@ export const useShop = () => useContext(Context);
 
 export function ShopProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [authenticated, setAuth] = useState(false);
   const [ready, setReady] = useState(false);
   const [cart, setCart] = useState<Cart | null>(null);
@@ -79,6 +80,28 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     const timer = setTimeout(() => setMessage(''), 6500);
     return () => clearTimeout(timer);
   }, [message]);
+
+  // Sync cart item count to browser tab title
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const items =
+      cart?.storeGroups?.flatMap((g) => g.items) ||
+      cart?.dateGroups?.flatMap((g) => g.items) ||
+      [];
+    const count = items.reduce((sum, it) => sum + (it.quantity || 1), 0);
+
+    // Give Next.js a tick to set page-specific title
+    const timeout = setTimeout(() => {
+      const cleanTitle = document.title.replace(/^\(\d+\)\s*/, '');
+      if (count > 0) {
+        document.title = `(${count}) ${cleanTitle}`;
+      } else if (cleanTitle) {
+        document.title = cleanTitle;
+      }
+    }, 50);
+
+    return () => clearTimeout(timeout);
+  }, [cart, pathname]);
 
   async function run<T>(f: () => Promise<T>): Promise<T | undefined> {
     try {
@@ -303,7 +326,7 @@ export function AuthGate({
   return (
     <div className="auth-gate">
       <img src="/images/swallow.webp" alt="" width={64} height={64} />
-      <h2>{title}</h2>
+      <h1>{title}</h1>
       <p>Ваши покупки, адреса и бонусы будут доступны после входа.</p>
       <button className="primary" onClick={s.login} type="button">
         Войти по телефону

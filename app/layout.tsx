@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { ShopProvider } from '@/components/shop-context';
@@ -7,13 +7,42 @@ import { publicApi, selectedStore } from '@/lib/upstream';
 import { unwrap, Store } from '@/lib/types';
 import './globals.css';
 
+export const viewport: Viewport = {
+  themeColor: '#e20a25',
+  width: 'device-width',
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
   title: {
     default: 'Ласточка Джами — любимые продукты рядом',
-    template: '%s · Ласточка Джами',
+    template: '%s · Ласточка',
   },
   description:
     'Продукты, свежая выпечка и готовые блюда. Каталог, быстрая доставка и самовывоз из Ласточки Джами.',
+  applicationName: 'Ласточка',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: ['/favicon.ico'],
+  },
+  manifest: '/manifest.webmanifest',
+  openGraph: {
+    type: 'website',
+    locale: 'ru_RU',
+    siteName: 'Ласточка Джами',
+    title: 'Ласточка Джами — любимые продукты рядом',
+    description:
+      'Продукты, свежая выпечка и готовые блюда. Каталог, быстрая доставка и самовывоз из Ласточки Джами.',
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

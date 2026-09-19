@@ -26,6 +26,10 @@ export function Filters({
   subcategories?: SubcategoriesNavProps;
 }) {
   const [open, setOpen] = useState(false);
+  const params = useSearchParams();
+  const activeCount = [...params.keys()].filter(
+    (key) => key === 'sort' || key === 'priceMin' || key === 'priceMax' || key === 'onlyDiscounted' || key.startsWith('filter['),
+  ).length;
 
   return (
     <>
@@ -63,6 +67,7 @@ export function Filters({
         type="button"
       >
         <SlidersHorizontal size={18} /> Фильтры и сортировка
+        {activeCount > 0 && <span className="filter-count" aria-label={`Активных фильтров: ${activeCount}`}>{activeCount}</span>}
       </button>
 
       {open && (

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useId, useRef } from 'react';
 import {
   MapPin,
   Search,
@@ -68,29 +68,10 @@ export function Header({ store }: { store: Store | null }) {
 
   const innerTitle = getInnerScreenTitle(path);
 
-  const isShowcasePage =
-    path === '/' ||
-    path === '/catalog' ||
-    path.startsWith('/category') ||
-    path.startsWith('/collection');
-
-  const isHiddenFloatCart =
-    path === '/cart' ||
-    path.startsWith('/profile') ||
-    path.startsWith('/addresses') ||
-    path.startsWith('/cards') ||
-    path.startsWith('/favorites') ||
-    path.startsWith('/search') ||
-    path.startsWith('/orders') ||
-    path.startsWith('/bonuses') ||
-    path.startsWith('/notifications') ||
-    path.startsWith('/reviews');
-
-  const showFloatCart = isShowcasePage && !isHiddenFloatCart;
-
   const nav = [
     { href: '/', title: 'Главная', Icon: House },
     { href: '/catalog', title: 'Каталог', Icon: LayoutGrid },
+    { href: '/cart', title: 'Корзина', Icon: ShoppingBasket },
     { href: '/favorites', title: 'Избранное', Icon: Heart },
     { href: '/profile', title: 'Профиль', Icon: UserRound },
   ];
@@ -156,7 +137,7 @@ export function Header({ store }: { store: Store | null }) {
             >
               <ChevronLeft size={24} />
             </button>
-            <h1 className="mobile-app-bar-title">{innerTitle}</h1>
+            <div className="mobile-app-bar-title">{innerTitle}</div>
             <div className="mobile-app-bar-action" aria-hidden="true" />
           </div>
         )}
@@ -194,6 +175,10 @@ export function Header({ store }: { store: Store | null }) {
             className="cart-button-container"
             onMouseEnter={handleCartMouseEnter}
             onMouseLeave={handleCartMouseLeave}
+            onFocus={handleCartMouseEnter}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) handleCartMouseLeave();
+            }}
           >
             <Link className="cart-button" href="/cart">
               <ShoppingBasket />
@@ -297,19 +282,6 @@ export function Header({ store }: { store: Store | null }) {
         ))}
       </nav>
 
-      {/* Mobile Floating Action Buttons */}
-      {showFloatCart && (
-        <div className="float-actions">
-          <Link href="/cart" className="float-cart-btn" aria-label="Корзина">
-            <ShoppingBasket size={19} />
-            <span>
-              {typeof total === 'number' && total > 0 ? money(total) : 'Корзина'}
-            </span>
-            {items.length > 0 && <span className="float-cart-badge">{items.length}</span>}
-          </Link>
-        </div>
-      )}
-
       {chooseStoreOpen && (
         <Modal title="Выбор магазина" onClose={() => setChooseStoreOpen(false)}>
           <p className="muted">
@@ -349,8 +321,10 @@ export function Header({ store }: { store: Store | null }) {
 
 export function SearchBox() {
   const router = useRouter();
+  const listboxId = useId();
   const [q, setQ] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [placeholder, setPlaceholder] = useState('Искать товары...');
 
   useEffect(() => {
@@ -365,13 +339,17 @@ export function SearchBox() {
   useEffect(() => {
     if (q.trim().length < 2) {
       setSuggestions([]);
+      setActiveIndex(-1);
       return;
     }
     let active = true;
     const t = setTimeout(() => {
       request<any>('search/suggestions?query=' + encodeURIComponent(q))
         .then((d) => {
-          if (active) setSuggestions(list(d).slice(0, 5));
+          if (active) {
+            setSuggestions(list(d).slice(0, 5));
+            setActiveIndex(-1);
+          }
         })
         .catch(() => setSuggestions([]));
     }, 300);
@@ -396,21 +374,53 @@ export function SearchBox() {
       <input
         name="query"
         aria-label="Поиск товаров"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={suggestions.length > 0}
+        aria-controls={listboxId}
+        aria-activedescendant={activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined}
         placeholder={placeholder}
         value={q}
         onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => {
+          if (!suggestions.length) return;
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActiveIndex((i) => (i + 1) % suggestions.length);
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActiveIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            setSuggestions([]);
+            setActiveIndex(-1);
+          } else if (e.key === 'Enter' && activeIndex >= 0) {
+            e.preventDefault();
+            const value = suggestions[activeIndex];
+            const text = typeof value === 'string' ? value : value.title || value.text || value.query;
+            if (text) {
+              setQ(text);
+              setSuggestions([]);
+              router.push('/search?query=' + encodeURIComponent(text));
+            }
+          }
+        }}
         minLength={2}
       />
       <button aria-label="Найти" type="submit">
         →
       </button>
       {suggestions.length > 0 && (
-        <div className="suggestions">
+        <div className="suggestions" id={listboxId} role="listbox" aria-label="Подсказки поиска">
           {suggestions.map((v, i) => {
             const text = typeof v === 'string' ? v : v.title || v.text || v.query;
             return text ? (
               <button
                 key={i}
+                id={`${listboxId}-${i}`}
+                role="option"
+                aria-selected={i === activeIndex}
+                className={i === activeIndex ? 'active' : ''}
                 type="button"
                 onClick={() => {
                   setQ(text);

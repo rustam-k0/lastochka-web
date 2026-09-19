@@ -445,7 +445,7 @@ export function QuickProduct({ id, onClose }: { id: number; onClose: () => void 
   );
 }
 
-export function ProductDetail({ p: initial }: { p: Product }) {
+export function ProductDetail({ p: initial, stickyBuy = false }: { p: Product; stickyBuy?: boolean }) {
   const [p, setP] = useState(initial);
   const [imageIndex, setImage] = useState(0);
   const [selected, setSelected] = useState<Record<number, number[]>>({});
@@ -463,7 +463,7 @@ export function ProductDetail({ p: initial }: { p: Product }) {
     .map((sup) => ({ supplementId: sup.id, valueIds: selected[sup.id] }));
 
   return (
-    <div className="product-detail">
+    <div className={`product-detail ${stickyBuy ? 'has-mobile-buy-bar' : ''}`}>
       <div className="gallery">
         <Photo src={p.images?.[imageIndex]?.path} alt={p.title} />
         {p.images?.length > 1 && (
@@ -616,6 +616,15 @@ export function ProductDetail({ p: initial }: { p: Product }) {
 
         {p.additionalInfo && <p>{p.additionalInfo}</p>}
       </div>
+      {stickyBuy && !missing && (
+        <div className="mobile-product-buy-bar" aria-label="Быстрая покупка">
+          <div>
+            <small>{p.weight && p.weight > 0 ? `${p.weight} г` : p.measurementUnitLabel || '1 шт'}</small>
+            <strong>{money(p.price)}</strong>
+          </div>
+          <Buy p={p} supplements={supplements} />
+        </div>
+      )}
     </div>
   );
 }

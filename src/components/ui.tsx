@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, ReactNode } from 'react';
 import Image from 'next/image';
 import { X, PackageOpen, LoaderCircle } from 'lucide-react';
 
@@ -89,17 +89,20 @@ export function Modal({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     const el = ref.current;
     const previousActiveElement = document.activeElement as HTMLElement | null;
     el?.showModal();
+    requestAnimationFrame(() => el?.querySelector<HTMLElement>('[data-modal-close]')?.focus());
     const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
     return () => {
       document.body.style.overflow = oldOverflow;
-      previousActiveElement?.focus();
+      el?.close();
+      previousActiveElement?.focus({ preventScroll: true });
     };
   }, []);
 
@@ -114,12 +117,12 @@ export function Modal({
       onClick={(e) => {
         if (e.target === ref.current) onClose();
       }}
-      aria-label={title}
+      aria-labelledby={titleId}
     >
       <div className="modal-inner">
         <div className="modal-heading">
-          <h2>{title}</h2>
-          <button className="icon-button" aria-label="Закрыть" onClick={onClose} type="button">
+          <h2 id={titleId}>{title}</h2>
+          <button data-modal-close className="icon-button" aria-label="Закрыть" onClick={onClose} type="button">
             <X />
           </button>
         </div>
