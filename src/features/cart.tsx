@@ -96,8 +96,16 @@ function CartContent() {
       ? group?.store?.pickupPaymentMethods
       : slotData?.availablePaymentMethods;
 
-  const total = group?.totalToPay ?? group?.total ?? cart?.totalToPay ?? 0;
   const items: CartItem[] = groups.flatMap((g) => g.items || []) || [];
+  const calculatedItemsTotal = items.reduce(
+    (acc, it) => acc + (it.price || it.product?.price || 0) * it.quantity,
+    0,
+  );
+  const serverTotal = group?.totalToPay ?? group?.total ?? cart?.totalToPay;
+  const total =
+    typeof serverTotal === 'number' && serverTotal > 0
+      ? serverTotal
+      : calculatedItemsTotal;
 
   useEffect(() => {
     setLocalCart(null);
@@ -165,13 +173,19 @@ function CartContent() {
       }
 
       const latestTotal = targetGroup.totalToPay ?? targetGroup.total ?? latest.totalToPay;
-      if (typeof latestTotal !== 'number') {
+      const latestItemsTotal = (targetGroup.items || []).reduce(
+        (acc: number, it: any) => acc + (it.price || it.product?.price || 0) * it.quantity,
+        0,
+      );
+      const confirmedTotal =
+        typeof latestTotal === 'number' && latestTotal > 0 ? latestTotal : latestItemsTotal;
+      if (typeof confirmedTotal !== 'number' || confirmedTotal <= 0) {
         throw new Error(
           'Магазин пока не передаёт подтверждённый итог корзины. Товары в корзине сохранены.',
         );
       }
 
-      setReviewModal({ cart: latest, total: latestTotal, storeId });
+      setReviewModal({ cart: latest, total: confirmedTotal, storeId });
     });
 
     lock.current = false;
