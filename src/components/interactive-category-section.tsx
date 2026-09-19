@@ -6,6 +6,7 @@ import { ArrowRight } from 'lucide-react';
 import { Category, Product, categoryMedia, list, product } from '@/lib/types';
 import { request } from '@/lib/client';
 import { ProductCarousel, SkeletonCards } from '@/components/products';
+import { CategoryFallback } from '@/components/category-fallback';
 
 export function InteractiveCategorySection({
   store,
@@ -74,7 +75,7 @@ export function InteractiveCategorySection({
               aria-label={c.name}
             >
               <strong className="category-tile-title">{c.name}</strong>
-              {imageSrc && (
+              {imageSrc ? (
                 <div className="category-tile-image-wrapper">
                   <img
                     src={imageSrc}
@@ -85,6 +86,8 @@ export function InteractiveCategorySection({
                     height={110}
                   />
                 </div>
+              ) : (
+                <CategoryFallback category={c} />
               )}
             </button>
           );

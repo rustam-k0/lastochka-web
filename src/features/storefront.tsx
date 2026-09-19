@@ -20,6 +20,7 @@ import { Filters } from '@/components/filters';
 import { LoyaltyCard } from './account/bonuses/loyalty-card';
 import { Reviews } from './account/reviews/reviews-view';
 import { InteractiveCategorySection } from '@/components/interactive-category-section';
+import { CategoryFallback } from '@/components/category-fallback';
 
 export function getCategoryGroupColor(category: Category | string): string {
   const slug = typeof category === 'string' ? category : (category.slug || '').toLowerCase();
@@ -207,7 +208,7 @@ export function CategoryTiles({
             key={c.id}
           >
             <span className="category-tile-title">{c.name}</span>
-            {imageSrc && (
+            {imageSrc ? (
               <div className="category-tile-image-wrapper">
                 <Photo
                   src={imageSrc}
@@ -217,6 +218,8 @@ export function CategoryTiles({
                   height={140}
                 />
               </div>
+            ) : (
+              <CategoryFallback category={c} />
             )}
           </Link>
         );

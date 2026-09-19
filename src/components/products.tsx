@@ -56,6 +56,12 @@ export function ProductCard({ p }: { p: Product }) {
       </div>
 
       <div className="product-bottom">
+        <div className="product-card-price-group">
+          <span className="product-card-price">{money(p.price)}</span>
+          {p.priceOld && p.priceOld > p.price ? (
+            <span className="product-card-old-price">{money(p.priceOld)}</span>
+          ) : null}
+        </div>
         <PillBuy p={p} onConfigure={() => setQuick(true)} />
       </div>
 

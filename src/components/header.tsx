@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   Bell,
   ChevronDown,
+  ChevronLeft,
   ArrowRight,
   Trash2,
 } from 'lucide-react';
@@ -20,6 +21,23 @@ import { useShop } from './shop-context';
 import { request } from '@/lib/client';
 import { list, money, cartChange, Store, CartItem } from '@/lib/types';
 import { Modal, Photo } from './ui';
+
+function getInnerScreenTitle(path: string): string | null {
+  if (path === '/profile') return 'Профиль';
+  if (path.startsWith('/profile/settings')) return 'Настройки';
+  if (path === '/cart') return 'Корзина';
+  if (path === '/favorites') return 'Избранное';
+  if (path.startsWith('/orders')) return 'Мои заказы';
+  if (path.startsWith('/addresses')) return 'Адреса доставки';
+  if (path.startsWith('/cards')) return 'Способы оплаты';
+  if (path.startsWith('/bonuses')) return 'Карта и бонусы';
+  if (path.startsWith('/notifications')) return 'Уведомления';
+  if (path.startsWith('/promotions')) return 'Акции';
+  if (path.startsWith('/reviews')) return 'Отзывы';
+  if (path === '/faq') return 'Помощь';
+  if (path === '/info') return 'Информация';
+  return null;
+}
 
 export function Header({ store }: { store: Store | null }) {
   const s = useShop();
@@ -37,6 +55,28 @@ export function Header({ store }: { store: Store | null }) {
     s.cart?.dateGroups?.flatMap((g) => g.items) ||
     [];
   const total = s.cart?.totalToPay ?? s.cart?.total;
+
+  const innerTitle = getInnerScreenTitle(path);
+
+  const isShowcasePage =
+    path === '/' ||
+    path === '/catalog' ||
+    path.startsWith('/category') ||
+    path.startsWith('/collection');
+
+  const isHiddenFloatCart =
+    path === '/cart' ||
+    path.startsWith('/profile') ||
+    path.startsWith('/addresses') ||
+    path.startsWith('/cards') ||
+    path.startsWith('/favorites') ||
+    path.startsWith('/search') ||
+    path.startsWith('/orders') ||
+    path.startsWith('/bonuses') ||
+    path.startsWith('/notifications') ||
+    path.startsWith('/reviews');
+
+  const showFloatCart = isShowcasePage && !isHiddenFloatCart;
 
   const nav = [
     { href: '/', title: 'Главная', Icon: House },
@@ -88,7 +128,29 @@ export function Header({ store }: { store: Store | null }) {
         </div>
       </div>
 
-      <header className="header">
+      <header className={`header ${innerTitle ? 'header-has-app-bar' : ''}`}>
+        {/* Contextual Mobile App Bar on inner screens */}
+        {innerTitle && (
+          <div className="container mobile-app-bar">
+            <button
+              type="button"
+              className="mobile-app-bar-back"
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push('/');
+                }
+              }}
+              aria-label="Назад"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <h1 className="mobile-app-bar-title">{innerTitle}</h1>
+            <div className="mobile-app-bar-action" aria-hidden="true" />
+          </div>
+        )}
+
         <div className="container header-row">
           <Link href="/" className="brand">
             <img src="/images/logo.webp" alt="Ласточка" width={46} height={46} />
@@ -223,17 +285,17 @@ export function Header({ store }: { store: Store | null }) {
       </nav>
 
       {/* Mobile Floating Action Buttons */}
-      <div className="float-actions">
-        <Link href="/search">
-          <Search size={18} /> Поиск
-        </Link>
-        <Link href="/cart">
-          <ShoppingBasket size={18} />
-          {typeof total === 'number' && total > 0
-            ? money(total)
-            : `Корзина${items.length ? ' · ' + items.length : ''}`}
-        </Link>
-      </div>
+      {showFloatCart && (
+        <div className="float-actions">
+          <Link href="/cart" className="float-cart-btn" aria-label="Корзина">
+            <ShoppingBasket size={19} />
+            <span>
+              {typeof total === 'number' && total > 0 ? money(total) : 'Корзина'}
+            </span>
+            {items.length > 0 && <span className="float-cart-badge">{items.length}</span>}
+          </Link>
+        </div>
+      )}
 
       {chooseStoreOpen && (
         <Modal title="Выбор магазина" onClose={() => setChooseStoreOpen(false)}>
