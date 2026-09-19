@@ -3,6 +3,11 @@ import { ArrowRight } from 'lucide-react';
 import { Category, categoryMedia } from '@/lib/types';
 import { CategoryFallback } from '@/components/category-fallback';
 
+/**
+ * Секция каталога с плитками подкатегорий.
+ * Все плитки оформлены как прямые ссылки Next.js (<Link>) на страницу /category/[slug].
+ * Раскрывающаяся шторка/аккордеон исключены для мгновенного перехода в раздел на всех устройствах.
+ */
 export function InteractiveCategorySection({
   store: _store,
   category,

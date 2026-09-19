@@ -97,10 +97,16 @@ function CartContent() {
       : slotData?.availablePaymentMethods;
 
   const items: CartItem[] = groups.flatMap((g) => g.items || []) || [];
+
+  // Базовая стоимость товаров: сумма цен позиций в корзине
   const calculatedItemsTotal = items.reduce(
     (acc, it) => acc + (it.price || it.product?.price || 0) * it.quantity,
     0,
   );
+
+  // Итоговая сумма к оплате:
+  // Если бэкенд возвращает 0 (например, пока адрес доставки не выбран пользователем),
+  // используем расчётную стоимость товаров, чтобы на странице не отображалось 0,00 ₽
   const serverTotal = group?.totalToPay ?? group?.total ?? cart?.totalToPay;
   const total =
     typeof serverTotal === 'number' && serverTotal > 0
