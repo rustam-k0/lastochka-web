@@ -2500,3 +2500,68 @@ button, [role="button"], input, select { min-height: var(--control-size); }
   border-color: var(--brand, #e52b2b) !important;
   outline: none !important;
 }
+
+/* Account Panels: Bonuses History & Settings Page Containers */
+.bonuses-history {
+  padding: clamp(16px, 2.2vw, 24px);
+}
+.bonuses-history h2 {
+  font-size: clamp(18px, 2vw, 20px);
+  font-weight: 750;
+  margin: 0 0 12px 0;
+  line-height: 1.25;
+}
+.bonuses-history p.muted {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.bonuses-history .transactions-list .card-row:last-child {
+  margin-bottom: 0;
+}
+
+.settings-page .panel {
+  padding: clamp(16px, 2.2vw, 24px);
+  max-width: 560px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.settings-form {
+  max-width: 560px;
+}
+.settings-form input,
+.settings-form select,
+.settings-form textarea {
+  max-width: 100%;
+}
+.settings-page .panel h2 {
+  font-size: clamp(18px, 2vw, 20px);
+  font-weight: 750;
+  margin: 0 0 16px 0;
+  line-height: 1.25;
+}
+.settings-page .danger-zone h3 {
+  font-size: 17px;
+  font-weight: 750;
+  margin: 0 0 8px 0;
+  line-height: 1.25;
+}
+.settings-page .danger-zone p {
+  margin: 0 0 14px 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.checkboxes-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.current-phone-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
