@@ -1,18 +1,718 @@
 'use client';
+
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import {useState,useEffect,useRef} from 'react';
-import {useRouter} from 'next/navigation';
-import {ShoppingBasket,Trash2,Clock,MapPin} from 'lucide-react';
-import {useShop,AuthGate} from '@/components/shop-context';
-import {Photo,Empty,ErrorMessage,Modal} from '@/components/ui';
-import {Buy} from '@/components/products';
-import {request} from '@/lib/client';
-import {Json,money,list,unwrap,product,truth} from '@/lib/types';
-import {useRemote,goPayment} from './user-pages';
-export function CartPage(){return <AuthGate title="Войдите, чтобы открыть корзину"><Cart/></AuthGate>;}
-function Cart(){const s=useShop(),router=useRouter(),addresses=useRemote('addresses'),settings=useRemote('app-settings');const [mode,setMode]=useState('courier'),[addressId,setAddress]=useState(''),[date,setDate]=useState(()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Moscow'}).format(new Date())),[slot,setSlot]=useState(''),[payment,setPayment]=useState('card'),[comment,setComment]=useState(''),[promo,setPromo]=useState(''),[busy,setBusy]=useState(false),[bonus,setBonus]=useState('earn'),[spend,setSpend]=useState(''),[review,setReview]=useState<Json>(),[options,setOptions]=useState<string[]>([]),[localCart,setLocalCart]=useState<Json>();const lock=useRef(false);const cart=localCart||s.cart,groups=cart?.storeGroups||[],group=groups[0],storeId=group?.store?.id;const opts=unwrap(settings.data);const slotPath=storeId&&(mode==='pickup'||addressId)?`stores/${storeId}/${mode==='pickup'?'pickup':'delivery'}-slots?date=${date}${mode==='courier'?'&addressId='+addressId:''}`:null;const slots=useRemote(slotPath);const slotData=unwrap(slots.data);const methods=mode==='pickup'?group?.store?.pickupPaymentMethods:slotData?.availablePaymentMethods;const total=group?.totalToPay??group?.total??cart?.totalToPay;const items=groups.flatMap((g:Json)=>g.items||[])||[];
-useEffect(()=>{setLocalCart(undefined);},[s.cart]);useEffect(()=>{const active=list(addresses.data).find(a=>a.isActive);if(active&&!addressId)setAddress(String(active.id));},[addresses.data,addressId]);useEffect(()=>{setSlot('');setReview(undefined);if(storeId)void s.run(async()=>{setLocalCart(unwrap(await request(`cart?shippingMethod=${mode}${addressId?'&addressId='+addressId:''}`)));});},[mode,addressId,storeId]);
-async function prepare(e:React.FormEvent){e.preventDefault();if(lock.current)return;lock.current=true;setBusy(true);await s.run(async()=>{const latest=unwrap(await request(`cart?shippingMethod=${mode}${addressId?'&addressId='+addressId:''}`));setLocalCart(latest);const g=latest.storeGroups?.find((x:Json)=>x.store.id===storeId);if(!g?.items?.length)throw new Error('В корзине не осталось доступных товаров');const latestTotal=g.totalToPay??g.total??latest.totalToPay;if(typeof latestTotal!=='number')throw new Error('Магазин пока не передаёт подтверждённый итог корзины. Онлайн-оформление недоступно; товары сохранены.');setReview({cart:latest,total:latestTotal,storeId});});lock.current=false;setBusy(false);}
-async function submit(){if(lock.current||!review)return;lock.current=true;setBusy(true);try{await s.run(async()=>{const current=unwrap(await request(`cart?shippingMethod=${mode}${addressId?'&addressId='+addressId:''}`));if(JSON.stringify(current)!==JSON.stringify(review.cart)){setLocalCart(current);setReview(undefined);throw new Error('Корзина изменилась. Проверьте товары и сумму ещё раз.');}const payload={storeId,addressId:mode==='courier'?Number(addressId):null,shippingMethod:mode,deliverySlotId:slot?Number(slot):null,comment,paymentType:payment,bonusAction:bonus,...(bonus==='spend'?{bonusSpendAmount:Math.round(Number(spend)*100)}:{}),checkoutOptions:options,returnUrl:location.origin+'/payment'};const fingerprint=JSON.stringify(payload);let pending:Json;try{pending=JSON.parse(sessionStorage.getItem('pending-order')||'null');}catch{}const idempotencyKey=pending?.fingerprint===fingerprint?pending.key:crypto.randomUUID();sessionStorage.setItem('pending-order',JSON.stringify({key:idempotencyKey,fingerprint}));const d=await request('orders','POST',{...payload,idempotencyKey});sessionStorage.removeItem('pending-order');sessionStorage.setItem('last-order',String(d.orderId));await s.refresh();if(d.confirmationUrl)goPayment(d.confirmationUrl);else router.push('/orders/'+d.orderId);});}finally{lock.current=false;setBusy(false);}}
-if(!cart)return <p>Загружаем корзину…</p>;if(!items.length)return <Empty title="В корзине пока пусто"><p>Добавьте свежие продукты и любимые блюда.</p><Link className="primary" href="/catalog">Перейти в каталог</Link></Empty>;
-return <><div className="page-heading"><h1>Корзина</h1><button className="text-button" onClick={()=>{if(confirm('Удалить все товары из корзины?'))void s.run(async()=>{await request('cart','DELETE');await s.refresh();});}}><Trash2 size={17}/> Очистить</button></div><div className="cart-layout"><div>{groups.map((g:Json)=><section className="panel cart-items" key={g.store.id}><h2>{g.store.name}</h2>{g.items.map((i:Json)=><article className="cart-item" key={i.id}><Link href={'/product/'+i.product?.id}><Photo src={i.product?.images?.[0]?.path} alt={i.product?.title}/></Link><div><Link href={'/product/'+i.product?.id}>{i.product?.title}</Link><small className="muted">{i.quantity} {i.product?.measurementUnitLabel} · {money(i.price)}</small>{i.stockWarning&&<p className="error">{i.stockWarning}</p>}</div><div><Buy p={product(i.product)}/><button className="icon-button" aria-label="Удалить товар" onClick={()=>s.setQuantity(i.id,0)}><Trash2 size={17}/></button></div></article>)}</section>)}</div><form className="panel checkout stack" onSubmit={prepare}><h2>Оформление</h2>{groups.length>1&&<p className="notice">Каждый магазин оформляется отдельно. Сейчас выбран {group.store.name}.</p>}<div className="segmented"><button type="button" className={mode==='courier'?'selected':''} onClick={()=>setMode('courier')}>Доставка</button>{group.store.isPickupEnabled&&<button type="button" className={mode==='pickup'?'selected':''} onClick={()=>setMode('pickup')}>Самовывоз</button>}</div>{mode==='courier'?<label>Адрес доставки<select required value={addressId} onChange={e=>setAddress(e.target.value)}><option value="">Выберите адрес</option>{list(addresses.data).map(a=><option key={a.id} value={a.id}>{[a.city,a.street,a.houseNumber].filter(Boolean).join(', ')}</option>)}</select><Link className="text-button" href="/addresses">Добавить или изменить адрес</Link></label>:<p className="notice"><MapPin size={17}/>{group.store.address}</p>}{(mode==='pickup'||!truth(opts?.checkoutWithoutSlots))&&<><label>Дата получения<input type="date" value={date} onChange={e=>setDate(e.target.value)} required/></label><label>Время<select value={slot} onChange={e=>setSlot(e.target.value)} required><option value="">{slots.loading?'Загружаем…':'Выберите время'}</option>{slotData?.slots?.map((v:Json)=><option key={v.id} value={v.id}>{v.timeSlot}</option>)}</select></label>{slots.error&&<ErrorMessage message={slots.error} retry={slots.reload}/>} {slotData?.slots?.length===0&&<p className="notice">На эту дату нет доступных интервалов. Выберите другую дату.</p>}</>}<label>Комментарий сборщику<textarea value={comment} onChange={e=>setComment(e.target.value)} maxLength={1000} placeholder="Например, выберите спелые бананы"/></label><label>Промокод<div className="inline-field"><input value={promo} maxLength={50} onChange={e=>setPromo(e.target.value)}/><button type="button" className="secondary" onClick={()=>s.run(async()=>{await request('cart/promocode','POST',{storeId,promocode:promo});await s.refresh();})}>Применить</button></div></label>{group.promocode&&<button className="text-button" type="button" onClick={()=>s.run(async()=>{await request('cart/promocode?storeId='+storeId,'DELETE');await s.refresh();})}>Удалить промокод</button>}{group.bonus?.isEnabled&&<fieldset><legend>Бонусы</legend><label className="check"><input type="radio" name="bonus" checked={bonus==='earn'} onChange={()=>setBonus('earn')}/> Накопить</label><label className="check"><input type="radio" name="bonus" checked={bonus==='spend'} onChange={()=>setBonus('spend')}/> Списать</label>{bonus==='spend'&&<label>Количество бонусов<input type="number" min="0.01" step="0.01" value={spend} onChange={e=>setSpend(e.target.value)} required/></label>}</fieldset>}<label>Оплата<select value={payment} onChange={e=>setPayment(e.target.value)}>{(methods||['card']).map((p:string)=><option value={p} key={p}>{p==='cash'?'При получении наличными':'Банковской картой'}</option>)}</select></label>{Array.isArray(opts?.checkoutOptions)&&opts.checkoutOptions.map((o:Json)=><label className="check" key={o.code}><input type="checkbox" checked={options.includes(o.code)} onChange={e=>setOptions(e.target.checked?[...options,o.code]:options.filter(x=>x!==o.code))}/>{o.label}</label>)}<dl className="totals"><dt>Доставка</dt><dd>{money(group.deliveryCost)}</dd><dt>Сборка</dt><dd>{money(group.assemblyCost)}</dd><dt>Скидка</dt><dd>{money(group.discount)}</dd><dt>Итого</dt><dd>{money(total)}</dd></dl>{!s.checkoutEnabled&&<p className="notice">Онлайн-оформление временно недоступно. Товары в корзине сохраняются.</p>}<button className="primary" disabled={busy||!s.checkoutEnabled}>{busy?'Проверяем корзину…':'Проверить и оформить'}</button><small className="muted">Перед оформлением магазин проверит актуальные цены, наличие и доставку.</small></form></div>{review&&<Modal title="Подтвердите заказ" onClose={()=>setReview(undefined)}><h2>К оплате {money(review.total)}</h2><p>Данные корзины подтверждены магазином. {payment==='card'?'Далее откроется страница оплаты.':''}</p><button className="primary" disabled={busy} onClick={submit}>{busy?'Оформляем…':'Оформить заказ'}</button></Modal>}</>;}
+import { useRouter } from 'next/navigation';
+import {
+  ShoppingBasket,
+  Trash2,
+  Clock,
+  MapPin,
+  CheckCircle2,
+  ChevronDown,
+  ShieldCheck,
+  CreditCard,
+  Truck,
+  Store as StoreIcon,
+} from 'lucide-react';
+import { useShop, AuthGate } from '@/components/shop-context';
+import { Photo, Empty, ErrorMessage, Modal } from '@/components/ui';
+import { CartQuantity } from '@/components/products';
+import { request } from '@/lib/client';
+import {
+  Cart,
+  CartItem,
+  CartStoreGroup,
+  Address,
+  money,
+  list,
+  unwrap,
+  product,
+  truth,
+} from '@/lib/types';
+import { useRemote } from './account/hooks/use-remote';
+import { goPayment } from './account/orders/orders-view';
+import { clearGuestCart } from '@/lib/guest-cart';
+
+export function CartPage() {
+  return (
+    <AuthGate title="Войдите, чтобы открыть корзину">
+      <CartContent />
+    </AuthGate>
+  );
+}
+
+function CartContent() {
+  const s = useShop();
+  const router = useRouter();
+  const addressesRemote = useRemote<Address[]>(s.authenticated ? 'addresses' : null);
+  const settingsRemote = useRemote<any>('app-settings');
+
+  const [mode, setMode] = useState<'courier' | 'pickup'>('courier');
+  const [addressId, setAddressId] = useState('');
+  const [guestAddress, setGuestAddress] = useState({
+    city: 'Нальчик',
+    street: '',
+    house: '',
+    apartment: '',
+  });
+
+  const [date, setDate] = useState(() =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow' }).format(new Date()),
+  );
+  const [slot, setSlot] = useState('');
+  const [payment, setPayment] = useState('card');
+  const [comment, setComment] = useState('');
+  const [promo, setPromo] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [bonus, setBonus] = useState<'earn' | 'spend'>('earn');
+  const [spend, setSpend] = useState('');
+  const [reviewModal, setReviewModal] = useState<any>();
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [localCart, setLocalCart] = useState<Cart | null>(null);
+
+  const lock = useRef(false);
+
+  const cart = localCart || s.cart;
+  const groups: CartStoreGroup[] = cart?.storeGroups || [];
+  const group = groups[0];
+  const storeId = group?.store?.id || 2;
+
+  const appSettings = unwrap<any>(settingsRemote.data);
+
+  // Delivery slot endpoint
+  const slotPath =
+    storeId && (mode === 'pickup' || addressId || !s.authenticated)
+      ? `stores/${storeId}/${mode === 'pickup' ? 'pickup' : 'delivery'}-slots?date=${date}${
+          mode === 'courier' && addressId ? '&addressId=' + addressId : ''
+        }`
+      : null;
+
+  const slotsRemote = useRemote<any>(s.authenticated ? slotPath : null);
+  const slotData = unwrap<any>(slotsRemote.data);
+
+  const paymentMethods =
+    mode === 'pickup'
+      ? group?.store?.pickupPaymentMethods
+      : slotData?.availablePaymentMethods;
+
+  const total = group?.totalToPay ?? group?.total ?? cart?.totalToPay ?? 0;
+  const items: CartItem[] = groups.flatMap((g) => g.items || []) || [];
+
+  useEffect(() => {
+    setLocalCart(null);
+  }, [s.cart]);
+
+  useEffect(() => {
+    if (s.authenticated && addressesRemote.data) {
+      const active = list<Address>(addressesRemote.data).find((a) => a.isActive);
+      if (active && !addressId) {
+        setAddressId(String(active.id));
+      }
+    }
+  }, [addressesRemote.data, addressId, s.authenticated]);
+
+  useEffect(() => {
+    setSlot('');
+    setReviewModal(undefined);
+    if (storeId && s.authenticated) {
+      void s.run(async () => {
+        const latest = unwrap<Cart>(
+          await request(`cart?shippingMethod=${mode}${addressId ? '&addressId=' + addressId : ''}`),
+        );
+        setLocalCart(latest);
+      });
+    }
+  }, [mode, addressId, storeId, s.authenticated]);
+
+  async function handleClearCart() {
+    if (!confirm('Удалить все товары из корзины?')) return;
+    if (s.authenticated) {
+      await s.run(async () => {
+        await request('cart', 'DELETE');
+        await s.refresh();
+      });
+    } else {
+      clearGuestCart();
+      await s.refresh();
+      s.notice('Корзина очищена');
+    }
+  }
+
+  async function prepareOrder(e: React.FormEvent) {
+    e.preventDefault();
+    if (lock.current) return;
+
+    if (!s.authenticated) {
+      // Prompt user to log in via SMS right at the checkout confirmation step
+      s.notice('Для оформления заказа подтвердите номер телефона');
+      s.login();
+      return;
+    }
+
+    lock.current = true;
+    setBusy(true);
+
+    await s.run(async () => {
+      const latest = unwrap<Cart>(
+        await request(`cart?shippingMethod=${mode}${addressId ? '&addressId=' + addressId : ''}`),
+      );
+      setLocalCart(latest);
+
+      const targetGroup = latest.storeGroups?.find((x) => x.store.id === storeId);
+      if (!targetGroup?.items?.length) {
+        throw new Error('В корзине не осталось доступных товаров');
+      }
+
+      const latestTotal = targetGroup.totalToPay ?? targetGroup.total ?? latest.totalToPay;
+      if (typeof latestTotal !== 'number') {
+        throw new Error(
+          'Магазин пока не передаёт подтверждённый итог корзины. Товары в корзине сохранены.',
+        );
+      }
+
+      setReviewModal({ cart: latest, total: latestTotal, storeId });
+    });
+
+    lock.current = false;
+    setBusy(false);
+  }
+
+  async function submitFinalOrder() {
+    if (lock.current || !reviewModal) return;
+    lock.current = true;
+    setBusy(true);
+
+    try {
+      await s.run(async () => {
+        const current = unwrap<Cart>(
+          await request(`cart?shippingMethod=${mode}${addressId ? '&addressId=' + addressId : ''}`),
+        );
+
+        if (JSON.stringify(current) !== JSON.stringify(reviewModal.cart)) {
+          setLocalCart(current);
+          setReviewModal(undefined);
+          throw new Error('Данные корзины изменились. Проверьте позиции и сумму.');
+        }
+
+        const payload = {
+          storeId,
+          addressId: mode === 'courier' ? Number(addressId) : null,
+          shippingMethod: mode,
+          deliverySlotId: slot ? Number(slot) : null,
+          comment,
+          paymentType: payment,
+          bonusAction: bonus,
+          ...(bonus === 'spend' ? { bonusSpendAmount: Math.round(Number(spend) * 100) } : {}),
+          checkoutOptions: selectedOptions,
+          returnUrl: location.origin + '/payment',
+        };
+
+        const fingerprint = JSON.stringify(payload);
+        let pending: any = null;
+        try {
+          pending = JSON.parse(sessionStorage.getItem('pending-order') || 'null');
+        } catch {
+          // Ignore
+        }
+
+        const idempotencyKey =
+          pending?.fingerprint === fingerprint ? pending.key : crypto.randomUUID();
+        sessionStorage.setItem('pending-order', JSON.stringify({ key: idempotencyKey, fingerprint }));
+
+        const orderResult = await request<any>('orders', 'POST', {
+          ...payload,
+          idempotencyKey,
+        });
+
+        sessionStorage.removeItem('pending-order');
+        sessionStorage.setItem('last-order', String(orderResult.orderId));
+        await s.refresh();
+
+        if (orderResult.confirmationUrl) {
+          goPayment(orderResult.confirmationUrl);
+        } else {
+          router.push('/orders/' + orderResult.orderId);
+        }
+      });
+    } finally {
+      lock.current = false;
+      setBusy(false);
+    }
+  }
+
+  if (!cart) {
+    return <p className="muted">Загружаем корзину…</p>;
+  }
+
+  if (!items.length) {
+    return (
+      <Empty title="В корзине пока пусто">
+        <p>Добавьте любимые продукты, свежую выпечку или готовые блюда.</p>
+        <Link className="primary" href="/catalog">
+          Перейти в каталог
+        </Link>
+      </Empty>
+    );
+  }
+
+  return (
+    <div className="cart-page-container">
+      <div className="page-heading">
+        <div>
+          <h1>Корзина</h1>
+          <span className="muted">{items.length} позиций в заказе</span>
+        </div>
+        <button className="text-button danger" onClick={handleClearCart} type="button">
+          <Trash2 size={17} /> Очистить
+        </button>
+      </div>
+
+      <div className="cart-layout-two-column">
+        {/* Left column: items list + step-by-step checkout form */}
+        <div className="cart-left-column">
+          {/* Cart Items List */}
+          <div className="cart-items-wrapper">
+            {groups.map((g) => (
+              <section className="panel cart-items" key={g.store.id}>
+                <div className="store-group-header">
+                  <h2>{g.store.name}</h2>
+                  {g.store.address && <span className="muted">{g.store.address}</span>}
+                </div>
+
+                <div className="items-list">
+                  {g.items.map((i) => {
+                    const normalized = product(i.product);
+                    return (
+                      <article className="cart-item" key={i.id}>
+                        <Link href={'/product/' + normalized.id} className="cart-item-photo">
+                          <Photo src={normalized.preview || undefined} alt={normalized.title} />
+                        </Link>
+                        <div className="cart-item-info">
+                          <Link href={'/product/' + normalized.id} className="cart-item-title">
+                            {normalized.title}
+                          </Link>
+                          <small className="muted">
+                            {normalized.measurementUnitLabel} · {money(i.price || normalized.price)}
+                          </small>
+                          {i.stockWarning && <p className="error">{i.stockWarning}</p>}
+                        </div>
+                        <div className="cart-item-controls">
+                          <CartQuantity itemId={i.id} p={normalized} quantity={Number(i.quantity)} />
+                          <button
+                            className="icon-button"
+                            aria-label={`Удалить ${normalized.title}`}
+                            type="button"
+                            onClick={() => s.setQuantity(i.id, 0, normalized)}
+                          >
+                            <Trash2 size={17} />
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+
+          {/* Checkout Steps Form */}
+          <form className="panel checkout-steps-panel stack" onSubmit={prepareOrder}>
+            <div className="checkout-header">
+              <h2>Оформление заказа</h2>
+              {!s.authenticated && (
+                <span className="guest-badge">Гостевой режим (вход на шаге подтверждения)</span>
+              )}
+            </div>
+
+            {/* Step 1: Receiving method and address */}
+            <fieldset className="checkout-step">
+              <legend>
+                <span className="step-number">1</span> Способ получения
+              </legend>
+
+              <div className="segmented-delivery-tabs">
+                <button
+                  type="button"
+                  className={mode === 'courier' ? 'selected' : ''}
+                  onClick={() => setMode('courier')}
+                >
+                  <Truck size={17} /> Доставка курьером
+                </button>
+                {group?.store?.isPickupEnabled && (
+                  <button
+                    type="button"
+                    className={mode === 'pickup' ? 'selected' : ''}
+                    onClick={() => setMode('pickup')}
+                  >
+                    <StoreIcon size={17} /> Самовывоз из магазина
+                  </button>
+                )}
+              </div>
+
+              {mode === 'courier' ? (
+                <div className="address-select-group stack">
+                  {s.authenticated ? (
+                    <label>
+                      Адрес доставки
+                      <select
+                        required
+                        value={addressId}
+                        onChange={(e) => setAddressId(e.target.value)}
+                      >
+                        <option value="">Выберите адрес доставки</option>
+                        {list<Address>(addressesRemote.data).map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {[a.city, a.street, a.houseNumber, a.apartment && `кв. ${a.apartment}`]
+                              .filter(Boolean)
+                              .join(', ')}
+                          </option>
+                        ))}
+                      </select>
+                      <Link className="text-button" href="/addresses">
+                        + Добавить новый адрес
+                      </Link>
+                    </label>
+                  ) : (
+                    <div className="guest-address-form stack">
+                      <p className="muted">
+                        Укажите адрес доставки. При оформлении заказа вы сможете сохранить его в профиле.
+                      </p>
+                      <div className="two-fields">
+                        <label>
+                          Город
+                          <input
+                            required
+                            value={guestAddress.city}
+                            onChange={(e) =>
+                              setGuestAddress({ ...guestAddress, city: e.target.value })
+                            }
+                          />
+                        </label>
+                        <label>
+                          Улица
+                          <input
+                            required
+                            placeholder="ул. Ленина"
+                            value={guestAddress.street}
+                            onChange={(e) =>
+                              setGuestAddress({ ...guestAddress, street: e.target.value })
+                            }
+                          />
+                        </label>
+                      </div>
+                      <div className="two-fields">
+                        <label>
+                          Дом
+                          <input
+                            required
+                            placeholder="1"
+                            value={guestAddress.house}
+                            onChange={(e) =>
+                              setGuestAddress({ ...guestAddress, house: e.target.value })
+                            }
+                          />
+                        </label>
+                        <label>
+                          Квартира
+                          <input
+                            placeholder="42"
+                            value={guestAddress.apartment}
+                            onChange={(e) =>
+                              setGuestAddress({ ...guestAddress, apartment: e.target.value })
+                            }
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="pickup-info-box">
+                  <MapPin size={18} />
+                  <div>
+                    <strong>{group?.store?.name}</strong>
+                    <p className="muted">{group?.store?.address || 'Адрес магазина'}</p>
+                  </div>
+                </div>
+              )}
+            </fieldset>
+
+            {/* Step 2: Time Slot */}
+            {(mode === 'pickup' || !truth(appSettings?.checkoutWithoutSlots)) && (
+              <fieldset className="checkout-step">
+                <legend>
+                  <span className="step-number">2</span> Дата и время получения
+                </legend>
+                <div className="two-fields">
+                  <label>
+                    Дата
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Интервал
+                    <select
+                      value={slot}
+                      onChange={(e) => setSlot(e.target.value)}
+                      required
+                      disabled={!s.authenticated}
+                    >
+                      <option value="">
+                        {!s.authenticated
+                          ? 'Будет выбран при подтверждении'
+                          : slotsRemote.loading
+                            ? 'Загружаем интервалы…'
+                            : 'Выберите время'}
+                      </option>
+                      {slotData?.slots?.map((v: any) => (
+                        <option key={v.id} value={v.id}>
+                          {v.timeSlot}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                {slotsRemote.error && (
+                  <ErrorMessage message={slotsRemote.error} retry={slotsRemote.reload} />
+                )}
+              </fieldset>
+            )}
+
+            {/* Step 3: Contacts & Preferences */}
+            <fieldset className="checkout-step">
+              <legend>
+                <span className="step-number">3</span> Пожелания и комментарий
+              </legend>
+              <label>
+                Комментарий для сборщика и курьера
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  maxLength={1000}
+                  placeholder="Например, положите спелые бананы или позвоните за 15 минут"
+                />
+              </label>
+
+              {Array.isArray(appSettings?.checkoutOptions) &&
+                appSettings.checkoutOptions.map((o: any) => (
+                  <label className="check" key={o.code}>
+                    <input
+                      type="checkbox"
+                      checked={selectedOptions.includes(o.code)}
+                      onChange={(e) =>
+                        setSelectedOptions(
+                          e.target.checked
+                            ? [...selectedOptions, o.code]
+                            : selectedOptions.filter((x) => x !== o.code),
+                        )
+                      }
+                    />
+                    <span>{o.label}</span>
+                  </label>
+                ))}
+            </fieldset>
+
+            {/* Step 4: Payment, Promocode and Bonuses */}
+            <fieldset className="checkout-step">
+              <legend>
+                <span className="step-number">4</span> Оплата и выгода
+              </legend>
+
+              <label>
+                Способ оплаты
+                <select value={payment} onChange={(e) => setPayment(e.target.value)}>
+                  {(paymentMethods || ['card', 'cash']).map((pMethod: string) => (
+                    <option value={pMethod} key={pMethod}>
+                      {pMethod === 'cash' ? 'Наличными при получении' : 'Банковской картой онлайн'}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Промокод
+                <div className="inline-field">
+                  <input
+                    value={promo}
+                    maxLength={50}
+                    onChange={(e) => setPromo(e.target.value)}
+                    placeholder="Введите промокод"
+                  />
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() =>
+                      s.run(async () => {
+                        await request('cart/promocode', 'POST', {
+                          storeId,
+                          promocode: promo,
+                        });
+                        await s.refresh();
+                        s.notice('Промокод применён');
+                      })
+                    }
+                  >
+                    Применить
+                  </button>
+                </div>
+              </label>
+
+              {group?.promocode && (
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() =>
+                    s.run(async () => {
+                      await request('cart/promocode?storeId=' + storeId, 'DELETE');
+                      await s.refresh();
+                    })
+                  }
+                >
+                  Удалить применённый промокод
+                </button>
+              )}
+
+              {s.authenticated && group?.bonus?.isEnabled && (
+                <div className="bonus-checkout-block">
+                  <div className="segmented">
+                    <button
+                      type="button"
+                      className={bonus === 'earn' ? 'selected' : ''}
+                      onClick={() => setBonus('earn')}
+                    >
+                      Копить бонусы
+                    </button>
+                    <button
+                      type="button"
+                      className={bonus === 'spend' ? 'selected' : ''}
+                      onClick={() => setBonus('spend')}
+                    >
+                      Списать бонусы
+                    </button>
+                  </div>
+
+                  {bonus === 'spend' && (
+                    <label className="spend-bonuses-input">
+                      Списать бонусов (доступно: {money((group.bonus?.balance || 0) / 100)})
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        max={(group.bonus?.balance || 0) / 100}
+                        value={spend}
+                        onChange={(e) => setSpend(e.target.value)}
+                        required
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
+            </fieldset>
+
+            <button
+              className="primary submit-checkout-mobile-btn"
+              disabled={busy || (s.authenticated && !s.checkoutEnabled)}
+              type="submit"
+            >
+              {busy
+                ? 'Проверяем заказ…'
+                : !s.authenticated
+                  ? 'Войти и продолжить оформление'
+                  : 'Подтвердить и оформить заказ'}
+            </button>
+          </form>
+        </div>
+
+        {/* Right column: Sticky Order Summary */}
+        <div className="cart-right-column">
+          <div className="sticky-order-summary panel">
+            <h3>Ваш заказ</h3>
+
+            <div className="summary-items-preview">
+              {items.slice(0, 4).map((it) => (
+                <div key={it.id} className="summary-mini-item">
+                  <span>{it.product.title}</span>
+                  <strong>{money((it.price || it.product.price) * it.quantity)}</strong>
+                </div>
+              ))}
+              {items.length > 4 && (
+                <small className="muted">и ещё {items.length - 4} позиций…</small>
+              )}
+            </div>
+
+            <dl className="totals">
+              {typeof group?.deliveryCost === 'number' && (
+                <>
+                  <dt>Доставка</dt>
+                  <dd>{money(group.deliveryCost)}</dd>
+                </>
+              )}
+              {typeof group?.assemblyCost === 'number' && (
+                <>
+                  <dt>Сборка</dt>
+                  <dd>{money(group.assemblyCost)}</dd>
+                </>
+              )}
+              {typeof group?.discount === 'number' && group.discount > 0 && (
+                <>
+                  <dt>Скидка</dt>
+                  <dd className="accent">−{money(group.discount)}</dd>
+                </>
+              )}
+              <dt className="grand-total-dt">Итого к оплате</dt>
+              <dd className="grand-total-dd">
+                <strong>{money(total)}</strong>
+              </dd>
+            </dl>
+
+            <button
+              className="primary checkout-sticky-btn"
+              disabled={busy || (s.authenticated && !s.checkoutEnabled)}
+              onClick={prepareOrder}
+              type="button"
+            >
+              {busy
+                ? 'Проверяем заказ…'
+                : !s.authenticated
+                  ? 'Оформить заказ'
+                  : 'Проверить и оформить'}
+            </button>
+
+            <div className="security-notice">
+              <ShieldCheck size={16} />
+              <span>Безопасная оплата картой или при получении</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {reviewModal && (
+        <Modal title="Подтверждение заказа" onClose={() => setReviewModal(undefined)}>
+          <div className="stack confirm-order-modal">
+            <h2>Сумма заказа: {money(reviewModal.total)}</h2>
+            <p>
+              Данные и цены корзины проверены магазином.
+              {payment === 'card'
+                ? ' После нажатия кнопки откроется защищённая платёжная страница.'
+                : ' Оплата будет произведена наличными курьеру при получении.'}
+            </p>
+            <button
+              className="primary"
+              disabled={busy}
+              onClick={submitFinalOrder}
+              type="button"
+            >
+              {busy ? 'Оформляем…' : 'Подтвердить и завершить заказ'}
+            </button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}

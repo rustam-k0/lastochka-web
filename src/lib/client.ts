@@ -1,4 +1,54 @@
 'use client';
-let csrf='';
-export async function browserSession(){const r=await fetch('/api/session',{cache:'no-store'});const s=await r.json();csrf=s.csrf;return s;}
-export async function request(path:string,method='GET',body?:unknown){if(method!=='GET'&&!csrf)await browserSession();const r=await fetch(path.startsWith('/api/')?path:`/api/shop/${path}`,{method,cache:'no-store',headers:{...(body?{'Content-Type':'application/json'}:{}),...(method!=='GET'?{'x-csrf-token':csrf}:{})},body:body?JSON.stringify(body):undefined});const d=await r.json();if(d?.csrf)csrf=d.csrf;if(!r.ok){const fields=d.errors?Object.values(d.errors).flat().join(' '):'';throw Object.assign(new Error([d.message,fields].filter(Boolean).join(' ')||'Не удалось выполнить запрос'),{status:r.status});}return d;}
+
+let cachedCsrfToken = '';
+
+export interface BrowserSessionData {
+  authenticated: boolean;
+  csrf: string;
+  storeId: number;
+  checkoutEnabled: boolean;
+}
+
+export async function browserSession(): Promise<BrowserSessionData> {
+  const response = await fetch('/api/session', { cache: 'no-store' });
+  const data = await response.json();
+  cachedCsrfToken = data.csrf;
+  return data;
+}
+
+export async function request<T = any>(
+  path: string,
+  method = 'GET',
+  body?: unknown,
+): Promise<T> {
+  if (method !== 'GET' && !cachedCsrfToken) {
+    await browserSession();
+  }
+
+  const url = path.startsWith('/api/') ? path : `/api/shop/${path}`;
+  const headers: Record<string, string> = {
+    ...(body ? { 'Content-Type': 'application/json' } : {}),
+    ...(method !== 'GET' ? { 'x-csrf-token': cachedCsrfToken } : {}),
+  };
+
+  const response = await fetch(url, {
+    method,
+    cache: 'no-store',
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const data = await response.json();
+  if (data?.csrf) {
+    cachedCsrfToken = data.csrf;
+  }
+
+  if (!response.ok) {
+    const fields = data?.errors ? Object.values(data.errors).flat().join(' ') : '';
+    const message =
+      [data?.message, fields].filter(Boolean).join(' ') || 'Не удалось выполнить запрос';
+    throw Object.assign(new Error(message), { status: response.status, data });
+  }
+
+  return data as T;
+}
