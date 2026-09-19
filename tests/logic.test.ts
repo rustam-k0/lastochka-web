@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import routes from '../src/config/routes.json';
-import {list,money,product,quantityLabel,step,truth,unwrap,normalizeMedia,categoryMedia,cartItems,cartChange,activeStoreId} from '../src/lib/types';
+import {list,money,product,quantityLabel,step,truth,unwrap,normalizeMedia,categoryMedia,cartItems,cartChange,activeStoreId,formatAvailabilityText} from '../src/lib/types';
 import {paymentReturnUrl} from '../src/lib/client';
 
 test('payment callbacks always use the configured canonical origin',()=>{
@@ -14,6 +14,39 @@ test('normalizes documented and observed API wrappers',()=>{
   assert.deepEqual(unwrap({data:{id:2}}),{id:2});
   assert.deepEqual(list({data:[{id:2}]}),[{id:2}]);
   assert.deepEqual(list({data:{id:2}}),[]);
+});
+
+test('normalizes availability time into clean "Доступно с HH:mm" format',()=>{
+  assert.equal(formatAvailabilityText('2026-09-20T09:00:00+03:00'), 'Доступно с 09:00');
+  assert.equal(formatAvailabilityText('2026-09-20T07:00:00+03:00'), 'Доступно с 07:00');
+  assert.equal(formatAvailabilityText('2026-09-20T12:00:00+03:00'), 'Доступно с 12:00');
+  assert.equal(formatAvailabilityText('2026-09-20 08:30:00'), 'Доступно с 08:30');
+  assert.equal(formatAvailabilityText('09:00'), 'Доступно с 09:00');
+  assert.equal(formatAvailabilityText('9:00'), 'Доступно с 09:00');
+  assert.equal(formatAvailabilityText('09:00:00'), 'Доступно с 09:00');
+  assert.equal(formatAvailabilityText('Доступно с 09:00'), 'Доступно с 09:00');
+  assert.equal(formatAvailabilityText(null), null);
+  assert.equal(formatAvailabilityText(undefined), null);
+  assert.equal(formatAvailabilityText(''), null);
+
+  // Normalization via product()
+  const pWithIso = product({
+    id: 10,
+    title: 'Пирог Печеночный Кусок',
+    price: 132,
+    stockQuantity: 5,
+    availableFrom: '2026-09-20T09:00:00+03:00',
+  });
+  assert.equal(pWithIso.availableFrom, 'Доступно с 09:00');
+
+  const pWithoutTime = product({
+    id: 11,
+    title: 'Пюре Картофельное',
+    price: 60,
+    stockQuantity: 5,
+    availableFrom: null,
+  });
+  assert.equal(pWithoutTime.availableFrom, undefined);
 });
 
 test('normalizes quantity, availability and images without inventing data',()=>{

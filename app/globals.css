@@ -2157,20 +2157,41 @@ button, [role="button"], input, select { min-height: var(--control-size); }
 /* Product Card Availability Badge & Transparent Outline Heart */
 .availability-badge {
   position: absolute;
-  top: 6px;
-  left: 6px;
+  top: 7px;
+  left: 7px;
   z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
+  padding: 3.5px 8px;
   background: var(--brand, #e52b2b);
   color: #ffffff;
   border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.1px;
+  white-space: nowrap;
   box-shadow: 0 2px 6px rgba(229, 43, 43, 0.28);
   pointer-events: none;
+}
+.product-detail-availability {
+  margin: 6px 0 8px;
+}
+.availability-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: var(--brand, #e52b2b);
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.1px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(229, 43, 43, 0.25);
 }
 .product-photo .favorite {
   position: absolute;

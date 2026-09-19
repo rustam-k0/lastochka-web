@@ -22,6 +22,7 @@ import {
   step,
   product,
   unwrap,
+  formatAvailabilityText,
 } from '@/lib/types';
 import { request } from '@/lib/client';
 import { useShop } from './shop-context';
@@ -45,11 +46,7 @@ export function ProductCard({ p }: { p: Product }) {
       ? `${p.weight} гр`
       : p.measurementUnitLabel || '1 шт';
 
-  const availabilityText = p.availableFrom
-    ? p.availableFrom.startsWith('Доступно')
-      ? p.availableFrom
-      : `Доступно с ${p.availableFrom}`
-    : null;
+  const availabilityText = formatAvailabilityText(p.availableFrom);
 
   return (
     <article className="product-card">
@@ -59,7 +56,7 @@ export function ProductCard({ p }: { p: Product }) {
         </Link>
         {availabilityText && (
           <span className="availability-badge">
-            <Clock size={11} /> {availabilityText}
+            <Clock size={11} strokeWidth={2.2} /> {availabilityText}
           </span>
         )}
         <Favorite p={p} />
@@ -470,6 +467,8 @@ export function ProductDetail({ p: initial, stickyBuy = false }: { p: Product; s
   const [selected, setSelected] = useState<Record<number, number[]>>({});
   const s = useShop();
 
+  const availabilityText = formatAvailabilityText(p.availableFrom);
+
   useEffect(() => {
     setP(initial);
     setImage(0);
@@ -529,6 +528,13 @@ export function ProductDetail({ p: initial, stickyBuy = false }: { p: Product; s
           </Link>
         )}
         <h1>{p.title}</h1>
+        {availabilityText && (
+          <div className="product-detail-availability">
+            <span className="availability-badge-inline">
+              <Clock size={13} strokeWidth={2.2} /> {availabilityText}
+            </span>
+          </div>
+        )}
         <p className="muted">
           {p.weight && p.weight > 0 ? `${p.weight} г · ` : ''}
           Цена за {quantityLabel(p, step(p))}

@@ -379,6 +379,46 @@ export function categoryMedia(v: Partial<Category> | any): {
   };
 }
 
+export function formatAvailabilityText(raw?: string | null): string | null {
+  if (!raw || typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  // Case 1: String contains ISO datetime or date with time, e.g. "2026-09-20T09:00:00+03:00" or "2026-09-20 09:00:00"
+  const isoTimeMatch = trimmed.match(/[T\s](\d{1,2}):(\d{2})/);
+  if (isoTimeMatch) {
+    const hours = isoTimeMatch[1].padStart(2, '0');
+    const minutes = isoTimeMatch[2];
+    return `Доступно с ${hours}:${minutes}`;
+  }
+
+  // Case 2: Already contains "Доступно с HH:mm" or "Доступно с H:mm"
+  const prefixedMatch = trimmed.match(/доступно\s*(?:с)?\s*(\d{1,2}):(\d{2})/i);
+  if (prefixedMatch) {
+    const hours = prefixedMatch[1].padStart(2, '0');
+    const minutes = prefixedMatch[2];
+    return `Доступно с ${hours}:${minutes}`;
+  }
+
+  // Case 3: Simple time string, e.g. "09:00", "9:00", "09:00:00"
+  const simpleTimeMatch = trimmed.match(/^(\d{1,2}):(\d{2})/);
+  if (simpleTimeMatch) {
+    const hours = simpleTimeMatch[1].padStart(2, '0');
+    const minutes = simpleTimeMatch[2];
+    return `Доступно с ${hours}:${minutes}`;
+  }
+
+  // Case 4: Any other time mention
+  const anyTimeMatch = trimmed.match(/(\d{1,2}):(\d{2})/);
+  if (anyTimeMatch) {
+    const hours = anyTimeMatch[1].padStart(2, '0');
+    const minutes = anyTimeMatch[2];
+    return `Доступно с ${hours}:${minutes}`;
+  }
+
+  return trimmed.startsWith('Доступно') ? trimmed : `Доступно с ${trimmed}`;
+}
+
 export function product(v: any): Product {
   const images = normalizeMedia(v);
   return {
@@ -399,13 +439,16 @@ export function product(v: any): Product {
     hasSupplements: truth(v.hasSupplements),
     hasRequiredSupplements: truth(v.hasRequiredSupplements),
     availableFrom:
-      v.availableFrom ||
-      v.available_from ||
-      v.cookingTimeFrom ||
-      v.cooking_time_from ||
-      v.cookingTime ||
-      v.cooking_time ||
-      (v.time_from ? `Доступно с ${v.time_from}` : undefined),
+      formatAvailabilityText(
+        v.availableFrom ||
+        v.available_from ||
+        v.cookingTimeFrom ||
+        v.cooking_time_from ||
+        v.cookingTime ||
+        v.cooking_time ||
+        v.time_from ||
+        v.timeFrom,
+      ) || undefined,
     reviewsCount: Number(v.reviewsCount) || 0,
   };
 }
