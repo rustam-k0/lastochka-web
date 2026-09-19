@@ -18,6 +18,7 @@ services:
       SESSION_DB_PATH: /app/.data/sessions.sqlite
       SESSION_ENCRYPTION_KEY: ${SESSION_ENCRYPTION_KEY:?SESSION_ENCRYPTION_KEY is required}
       CHECKOUT_ENABLED: ${CHECKOUT_ENABLED:-false}
+      ALLOWED_PAYMENT_RETURN_URL: ${ALLOWED_PAYMENT_RETURN_URL:-https://lastochki.store}
 
   caddy:
     image: caddy:2-alpine
