@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useShop, AuthGate } from '@/components/shop-context';
 import { Photo, Empty, ErrorMessage, Modal } from '@/components/ui';
+import { ShareCartModal } from '@/components/share-cart-modal';
 import { paymentReturnUrl, request } from '@/lib/client';
 import {
   Cart,
@@ -76,6 +77,7 @@ function CartContent() {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [localCart, setLocalCart] = useState<Cart | null>(null);
   const [termsAgreed, setTermsAgreed] = useState(true);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const lock = useRef(false);
 
@@ -163,20 +165,12 @@ function CartContent() {
     }
   }
 
-  async function handleShare() {
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Моя корзина в Ласточке',
-          url: window.location.href,
-        });
-      } catch {
-        // User dismissed share dialog
-      }
-    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(window.location.href);
-      s.notice('Ссылка на корзину скопирована');
+  function handleShare() {
+    if (!items.length) {
+      s.notice('В вашей корзине пока нет товаров');
+      return;
     }
+    setShareModalOpen(true);
   }
 
   async function prepareOrder(e?: React.FormEvent) {
@@ -896,6 +890,12 @@ function formatRub(v: unknown): string {
           </div>
         </Modal>
       )}
+
+      <ShareCartModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        items={items}
+      />
     </div>
   );
 }

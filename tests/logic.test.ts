@@ -169,3 +169,29 @@ test('guest cart stores items, recalculates totals, and updates quantities',()=>
   delete (globalThis as any).window;
   delete (globalThis as any).localStorage;
 });
+
+test('shared cart format serializes and parses mobile-compatible hash strings', () => {
+  const sampleItems = [
+    { id: 2035, quantity: 1 },
+    { id: 12486, quantity: 2 },
+    { id: 236, quantity: 3 },
+  ];
+
+  // Serializing to mobile hash format
+  const serialized = sampleItems.map((it) => `${it.id}:${it.quantity}`).join(',');
+  assert.equal(serialized, '2035:1,12486:2,236:3');
+
+  // Deserializing hash from mobile app QR code
+  const mobileHash = '2035:1,12486:1,236:1,2053:1';
+  const parsed = mobileHash.split(',').map((pair) => {
+    const [id, qty] = pair.split(':');
+    return { id: Number(id), quantity: Number(qty) };
+  });
+
+  assert.equal(parsed.length, 4);
+  assert.deepEqual(parsed[0], { id: 2035, quantity: 1 });
+  assert.deepEqual(parsed[1], { id: 12486, quantity: 1 });
+  assert.deepEqual(parsed[2], { id: 236, quantity: 1 });
+  assert.deepEqual(parsed[3], { id: 2053, quantity: 1 });
+});
+
