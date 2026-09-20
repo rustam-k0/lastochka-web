@@ -11,4 +11,6 @@ playwright-report/
 *.tsbuildinfo
 artifacts/
 new/
+scratch/
+
 *-snapshots/

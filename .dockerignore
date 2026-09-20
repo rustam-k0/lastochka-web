@@ -8,3 +8,6 @@ playwright-report
 artifacts
 *.tsbuildinfo
 .DS_Store
+new
+scratch
+
