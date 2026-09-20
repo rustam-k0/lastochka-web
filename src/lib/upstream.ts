@@ -73,5 +73,7 @@ export async function publicApi(path: string, options: UpstreamOptions = {}) {
 
 export async function selectedStore(): Promise<number> {
   const currentSession = await session();
-  return activeStoreId(currentSession?.store, null, Number(process.env.DEFAULT_STORE_ID) || 2);
+  const id = activeStoreId(currentSession?.store, null, Number(process.env.DEFAULT_STORE_ID) || 2);
+  // Store 8 is a blank technical placeholder with 0 products; fallback to active store 2
+  return id === 8 || !id ? 2 : id;
 }

@@ -21,9 +21,17 @@ import {
   ScanLine,
 } from 'lucide-react';
 import { BarcodeScannerModal } from './barcode-scanner-modal';
+import {
+  LOCATION_CHANGED_EVENT,
+  LOCATION_MODE_STORAGE_KEY,
+  LOCATION_OPEN_EVENT,
+  LocationSheet,
+  type LocationMode,
+  type LocationSelection,
+} from './location-sheet';
 import { useShop } from './shop-context';
 import { request } from '@/lib/client';
-import { list, money, cartChange, Store, CartItem, product } from '@/lib/types';
+import { list, money, Store, CartItem, product, type Address } from '@/lib/types';
 import { Modal, Photo } from './ui';
 
 function getInnerScreenTitle(path: string): string | null {
@@ -48,9 +56,11 @@ export function Header({ store }: { store: Store | null }) {
   const path = usePathname();
 
   const [chooseStoreOpen, setChooseStoreOpen] = useState(false);
+  const [locationTab, setLocationTab] = useState<LocationMode>('delivery');
+  const [locationSelection, setLocationSelection] = useState<LocationSelection>({
+    mode: 'delivery',
+  });
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [stores, setStores] = useState<Store[]>([]);
-  const [busy, setBusy] = useState(false);
   const [cartPreviewOpen, setCartPreviewOpen] = useState(false);
   const cartPreviewTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -72,35 +82,74 @@ export function Header({ store }: { store: Store | null }) {
 
   const innerTitle = getInnerScreenTitle(path);
 
+  useEffect(() => {
+    const savedMode = window.localStorage.getItem(LOCATION_MODE_STORAGE_KEY);
+    if (savedMode === 'delivery' || savedMode === 'pickup') {
+      setLocationTab(savedMode);
+      setLocationSelection((current) => ({ ...current, mode: savedMode }));
+    }
+
+    const openLocation = (event: Event) => {
+      const requestedTab = (event as CustomEvent<LocationMode>).detail;
+      if (requestedTab === 'delivery' || requestedTab === 'pickup') {
+        setLocationTab(requestedTab);
+      }
+      setChooseStoreOpen(true);
+    };
+    const updateLocation = (event: Event) => {
+      const selection = (event as CustomEvent<LocationSelection>).detail;
+      if (selection?.mode) {
+        setLocationTab(selection.mode);
+        setLocationSelection(selection);
+      }
+    };
+
+    window.addEventListener(LOCATION_OPEN_EVENT, openLocation);
+    window.addEventListener(LOCATION_CHANGED_EVENT, updateLocation);
+    return () => {
+      window.removeEventListener(LOCATION_OPEN_EVENT, openLocation);
+      window.removeEventListener(LOCATION_CHANGED_EVENT, updateLocation);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!s.ready || !s.authenticated) return;
+
+    let active = true;
+    void request<unknown>('addresses')
+      .then(list<Address>)
+      .then((addresses) => {
+        const address = addresses.find((item) => item.isActive);
+        if (!active || !address) return;
+        const label = [address.city, address.street, address.houseNumber && `д. ${address.houseNumber}`]
+          .filter(Boolean)
+          .join(', ');
+        setLocationSelection((current) =>
+          current.mode === 'delivery' ? { mode: 'delivery', label } : current,
+        );
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, [s.authenticated, s.ready]);
+
+  const pickupLabel =
+    !store || store.name.trim().toLowerCase() === 'default'
+      ? 'Ласточка Джами'
+      : store.address || store.name;
+  const locationLabel =
+    locationSelection.mode === 'pickup'
+      ? locationSelection.label || pickupLabel
+      : locationSelection.label || 'Указать адрес';
+
   const nav = [
     { href: '/', title: 'Главная', Icon: House },
     { href: '/catalog', title: 'Каталог', Icon: Menu },
     { href: '/favorites', title: 'Избранное', Icon: Heart },
     { href: '/profile', title: 'Профиль', Icon: UserRound },
   ];
-
-  async function openStorePicker() {
-    setChooseStoreOpen(true);
-    await s.run(async () => setStores(list(await request('stores'))));
-  }
-
-  async function selectStore(id: number) {
-    setBusy(true);
-    await s.run(async () => {
-      const beforeCart = s.cart;
-      const result = await request<any>('/api/store', 'POST', { storeId: id });
-      if (Number(result?.store?.id) !== id) {
-        throw new Error(
-          'Сервер выбрал другой магазин. Обновите страницу и повторите выбор.',
-        );
-      }
-      await s.refresh();
-      setChooseStoreOpen(false);
-      s.notice(cartChange(beforeCart, result.cart) || `Магазин «${result.store.name}» выбран`);
-      router.refresh();
-    });
-    setBusy(false);
-  }
 
   const handleCartMouseEnter = () => {
     if (cartPreviewTimeout.current) clearTimeout(cartPreviewTimeout.current);
@@ -163,15 +212,18 @@ export function Header({ store }: { store: Store | null }) {
 
           <SearchBox onOpenScanner={() => setScannerOpen(true)} />
 
-          <button className="location" onClick={openStorePicker} type="button" aria-label="Выбор адреса и магазина доставки">
+          <button
+            className="location"
+            onClick={() => setChooseStoreOpen(true)}
+            type="button"
+            aria-label="Выбор адреса и магазина доставки"
+          >
             <MapPin size={20} className="location-pin-icon" />
             <span>
-              <small className="location-subtitle">Доставка</small>
-              <strong className="location-name">
-                {!store || store.name === 'default'
-                  ? 'Нальчик'
-                  : store.name}
-              </strong>
+              <small className="location-subtitle">
+                {locationSelection.mode === 'pickup' ? 'Самовывоз' : 'Доставка'}
+              </small>
+              <strong className="location-name">{locationLabel}</strong>
             </span>
             <ChevronDown size={14} className="location-chevron" />
           </button>
@@ -268,15 +320,19 @@ export function Header({ store }: { store: Store | null }) {
 
         {/* Mobile Header Bar */}
         <div className="container mobile-address">
-          <Link
-            href="/addresses"
+          <button
+            type="button"
             className="mobile-address-capsule"
             aria-label="Указать адрес доставки"
+            onClick={() => {
+              setLocationTab('delivery');
+              setChooseStoreOpen(true);
+            }}
           >
             <House size={17} className="capsule-home-icon" />
-            <span className="capsule-address-text">Добавить адрес</span>
+            <span className="capsule-address-text">{locationLabel}</span>
             <ChevronRight size={15} className="capsule-chevron-icon" />
-          </Link>
+          </button>
           <Link href="/notifications" className="mobile-bell-btn" aria-label="Уведомления">
             <Bell size={20} />
           </Link>
@@ -307,39 +363,12 @@ export function Header({ store }: { store: Store | null }) {
         </div>
       )}
 
-      {chooseStoreOpen && (
-        <Modal title="Выбор магазина" onClose={() => setChooseStoreOpen(false)}>
-          <p className="muted">
-            Для доставки магазин определяется вашим активным адресом. Выбор магазина ниже меняет
-            витрину при самовывозе.
-          </p>
-          <Link
-            href="/addresses"
-            className="primary block"
-            onClick={() => setChooseStoreOpen(false)}
-          >
-            Выбрать адрес доставки
-          </Link>
-          <div className="stack stores-list">
-            {stores.map((st) => (
-              <button
-                key={st.id}
-                className="store-option"
-                disabled={busy}
-                onClick={() => selectStore(st.id)}
-                type="button"
-              >
-                <MapPin />
-                <span>
-                  <strong>{st.name}</strong>
-                  <small>{st.address || 'Адрес не указан'}</small>
-                </span>
-                {store?.id === st.id && <span className="selected-check">✓</span>}
-              </button>
-            ))}
-          </div>
-        </Modal>
-      )}
+      <LocationSheet
+        isOpen={chooseStoreOpen}
+        onClose={() => setChooseStoreOpen(false)}
+        currentStore={store}
+        initialTab={locationTab}
+      />
 
       <BarcodeScannerModal
         isOpen={scannerOpen}

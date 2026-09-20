@@ -41,7 +41,7 @@ test('home, catalog, search and product links use live store data',async({page})
   const errors:string[]=[];
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto('/');
-  if((page.viewportSize()?.width||0)<=560)await expect(page.getByRole('link',{name:/Указать адрес доставки/})).toBeVisible();
+  if((page.viewportSize()?.width||0)<=560)await expect(page.getByRole('button',{name:/Указать адрес доставки/})).toBeVisible();
   else await expect(page.getByRole('heading',{name:'Всё любимое — рядом'})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Рекомендуем'})).toBeVisible();
   await page.goto('/catalog');
@@ -57,6 +57,22 @@ test('home, catalog, search and product links use live store data',async({page})
   await product.click();
   await expect(page.locator('.product-detail h1')).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('location picker uses delivery and pickup tabs without leaving the page',async({page})=>{
+  await page.goto('/');
+  if((page.viewportSize()?.width||0)<=560){
+    await page.getByRole('button',{name:/Указать адрес доставки/}).first().click();
+  }else{
+    await page.getByRole('button',{name:'Выбор адреса и магазина доставки'}).click();
+  }
+  const dialog=page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('tab',{name:'Доставка'})).toHaveAttribute('aria-selected','true');
+  await expect(dialog.getByText('Нет сохраненных адресов')).toBeVisible();
+  await dialog.getByRole('tab',{name:'Самовывоз'}).click();
+  await expect(dialog.getByRole('tab',{name:'Самовывоз'})).toHaveAttribute('aria-selected','true');
+  await expect(dialog.getByText('default',{exact:true})).toHaveCount(0);
 });
 
 test('layout has no horizontal overflow and browser history restores catalog',async({page})=>{
@@ -121,14 +137,14 @@ test('mobile shell has four tabs and separate search and cart actions',async({pa
   await page.goto('/');
   await expect(page.locator('.bottom-nav a')).toHaveCount(4);
   await expect(page.locator('.bottom-nav').getByText('Корзина')).toHaveCount(0);
-  await expect(page.getByRole('link',{name:'Поиск товаров'})).toBeVisible();
-  await expect(page.getByRole('link',{name:'Открыть корзину'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Указать адрес доставки'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Уведомления'})).toBeVisible();
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
   expect(overflow).toBe(0);
 });
 
 test('search suggestions and login dialog work from the keyboard',async({page})=>{
-  await page.goto('/');
+  await page.goto((page.viewportSize()?.width||0)<=560?'/search':'/');
   const search=page.getByRole('combobox',{name:'Поиск товаров'});
   await search.focus();
   await search.fill('молоко');

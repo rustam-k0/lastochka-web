@@ -15,30 +15,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Выберите магазин' }, { status: 422 });
     }
 
-    if (currentSession!.token) {
-      try {
-        const response = await upstream('addresses/active', { token: currentSession!.token });
-        const active = response?.data ?? response;
-        if (active?.id) {
-          return NextResponse.json(
-            {
-              message:
-                'Для доставки магазин определяется выбранным адресом. Измените адрес доставки или выберите самовывоз в корзине.',
-              activeStoreId: Number(active.storeId || active.store?.id) || null,
-            },
-            { status: 409 },
-          );
-        }
-      } catch (err) {
-        if (err instanceof ApiError && err.status !== 404) {
-          throw err;
-        }
-      }
-    }
-
     const stores = await upstream('stores', { token: currentSession!.token });
     const chosen = stores.data?.find(
-      (x: { id: number; isActive?: boolean }) => x.id === storeId && x.isActive,
+      (x: { id: number; isActive?: boolean; name?: string }) =>
+        x.id === storeId &&
+        x.isActive &&
+        x.id !== 8 &&
+        x.name?.trim().toLowerCase() !== 'default',
     );
 
     if (!chosen) {

@@ -22,6 +22,7 @@ import { LoyaltyCard } from './account/bonuses/loyalty-card';
 import { Reviews } from './account/reviews/reviews-view';
 import { InteractiveCategorySection } from '@/components/interactive-category-section';
 import { CategoryFallback } from '@/components/category-fallback';
+import { LocationTrigger } from '@/components/location-sheet';
 
 export { getCategoryGroupColor };
 
@@ -100,9 +101,9 @@ export async function Home() {
             Продукты для любимых блюд.
             <br className="mobile-break" /> И маленьких повседневных радостей.
           </p>
-          <Link href="/addresses" className="address-cta">
+          <LocationTrigger className="address-cta" initialTab="delivery">
             <MapPin size={18} /> Указать адрес доставки <ChevronRight size={16} />
-          </Link>
+          </LocationTrigger>
         </div>
         <LoyaltyCard compact />
       </section>
@@ -117,6 +118,13 @@ export async function Home() {
               </Link>
             ))}
           </div>
+        )}
+
+        {showcase.length > 0 && (
+          <section className="home-showcase-section">
+            <SectionHeading title="Популярные категории" href="/catalog" />
+            <CategoryTiles categories={showcase} />
+          </section>
         )}
 
         {/* Featured promo collections on Home */}
