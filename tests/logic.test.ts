@@ -1,8 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import routes from '../src/config/routes.json';
-import {list,money,product,quantityLabel,step,truth,unwrap,normalizeMedia,categoryMedia,cartItems,cartChange,activeStoreId,formatAvailabilityText} from '../src/lib/types';
+import {list,money,product,quantityLabel,step,truth,unwrap,normalizeMedia,categoryMedia,cartItems,cartChange,activeStoreId,formatAvailabilityText,getCategoryGroupColor} from '../src/lib/types';
 import {paymentReturnUrl} from '../src/lib/client';
+
+test('matches exact reference palette for all 17 categories and fallback', () => {
+  assert.equal(getCategoryGroupColor('xleb-i-vypechka'), '#FDE6D2');
+  assert.equal(getCategoryGroupColor({ name: 'Хлеб и булочки', slug: 'xleb' }), '#FDE6D2');
+  assert.equal(getCategoryGroupColor({ name: 'Готовая еда', slug: 'gotovaya-eda' }), '#FEE8CE');
+  assert.equal(getCategoryGroupColor('salaty-i-zakuski'), '#FEE8CE');
+  assert.equal(getCategoryGroupColor({ name: 'Овощи и зелень', slug: 'ovoshhi' }), '#D4F2A3');
+  assert.equal(getCategoryGroupColor('frukty-i-yagody'), '#D4F2A3');
+  assert.equal(getCategoryGroupColor({ name: 'Мясо и птица', slug: 'myaso' }), '#FDDCD7');
+  assert.equal(getCategoryGroupColor('kolbasy-i-sosiski'), '#FDDCD7');
+  assert.equal(getCategoryGroupColor({ name: 'Рыба и морепродукты', slug: 'ryba' }), '#CCF2EE');
+  assert.equal(getCategoryGroupColor('sladkoe-i-torty'), '#FCE1ED');
+  assert.equal(getCategoryGroupColor('zamorozhennye-produkty'), '#D0F0FD');
+  assert.equal(getCategoryGroupColor('voda-i-napitki'), '#CEE5FD');
+  assert.equal(getCategoryGroupColor('bakaleya-i-makarony'), '#FEF2BF');
+  assert.equal(getCategoryGroupColor('chaj-i-kofe'), '#EFE4D6');
+  assert.equal(getCategoryGroupColor('sneki-i-chipsy'), '#FEE5C2');
+  assert.equal(getCategoryGroupColor({ name: 'Детское питание', slug: 'detskoe-pitanie' }), '#FDDDE3');
+  assert.equal(getCategoryGroupColor({ name: 'Детская гигиена и игрушки', slug: 'detskaya-gigiena-i-igrushki' }), '#F1D6F7');
+  assert.equal(getCategoryGroupColor({ name: 'Товары для животных', slug: 'korma-dlya-zhivotnyh' }), '#DEEEC6');
+  assert.equal(getCategoryGroupColor({ name: 'Красота и гигиена', slug: 'krasota-i-uhod' }), '#F0D5FA');
+  assert.equal(getCategoryGroupColor({ name: 'Всё для уборки', slug: 'uborka-i-bytovaya-himiya' }), '#D2E5FC');
+  assert.equal(getCategoryGroupColor({ name: 'Для дома и дачи', slug: 'tovary-dlya-doma-i-dachi' }), '#D0F2E5');
+  assert.equal(getCategoryGroupColor('neizvestnaya-kategoriya'), '#F6EEE3');
+});
+
 
 test('payment callbacks always use the configured canonical origin',()=>{
   assert.equal(paymentReturnUrl('/cards?binding=return','https://lastochka.duckdns.org'), 'https://lastochka.duckdns.org/cards?binding=return');

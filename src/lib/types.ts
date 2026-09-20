@@ -493,3 +493,315 @@ export function activeStoreId(
 ): number {
   return Number(address?.storeId || address?.store?.id || sessionStore || fallback);
 }
+
+export function getCategoryGroupColor(category: Partial<Category> | string): string {
+  const slug = typeof category === 'string' ? category : (category.slug || '').toLowerCase();
+  const name = typeof category === 'string' ? category : (category.name || '').toLowerCase();
+  const text = `${slug} ${name}`;
+
+  // 1. Детское питание: #FDDDE3 (пудровый baby-pink)
+  if (
+    (text.includes('detsk') || text.includes('детск')) &&
+    (text.includes('pit') || text.includes('питан') || text.includes('smes') || text.includes('смес') || text.includes('piure') || text.includes('пюре') || text.includes('kash') || text.includes('каш'))
+  ) {
+    return '#FDDDE3';
+  }
+
+  // 2. Детская гигиена и игрушки: #F1D6F7 (пастельная лаванда)
+  if (
+    text.includes('igrushk') ||
+    text.includes('игрушк') ||
+    ((text.includes('detsk') || text.includes('детск')) && (text.includes('gigien') || text.includes('гигиен') || text.includes('uhod') || text.includes('уход')))
+  ) {
+    return '#F1D6F7';
+  }
+
+  // 3. Всё для уборки: #D2E5FC (чистый небесный)
+  if (
+    text.includes('ubork') ||
+    text.includes('уборк') ||
+    text.includes('bytov') ||
+    text.includes('бытов') ||
+    text.includes('chist') ||
+    text.includes('чистящ') ||
+    text.includes('stirk') ||
+    text.includes('стирк')
+  ) {
+    return '#D2E5FC';
+  }
+
+  // 4. Товары для животных: #DEEEC6 (нежная фисташка)
+  if (
+    text.includes('zhivotn') ||
+    text.includes('животн') ||
+    text.includes('korm') ||
+    text.includes('корм') ||
+    text.includes('zootovar') ||
+    text.includes('зоо') ||
+    text.includes('кошек') ||
+    text.includes('собак')
+  ) {
+    return '#DEEEC6';
+  }
+
+  // 5. Красота и гигиена: #F0D5FA (лиловая орхидея)
+  if (
+    text.includes('krasot') ||
+    text.includes('красот') ||
+    text.includes('gigien') ||
+    text.includes('гигиен') ||
+    text.includes('kosmetik') ||
+    text.includes('косметик') ||
+    text.includes('uhod') ||
+    text.includes('уход')
+  ) {
+    return '#F0D5FA';
+  }
+
+  // 6. Для дома и дачи: #D0F2E5 (пастельный мятный)
+  if (
+    text.includes('dach') ||
+    text.includes('дач') ||
+    text.includes('posud') ||
+    text.includes('посуд') ||
+    text.includes('sad') ||
+    text.includes('сад') ||
+    (text.includes('dom') && !text.includes('vedom')) ||
+    text.includes('для дома')
+  ) {
+    return '#D0F2E5';
+  }
+
+  // 7. Выпечка, хлеб: #FDE6D2 (песочно-пшеничный)
+  if (
+    text.includes('xleb') ||
+    text.includes('хлеб') ||
+    text.includes('buloc') ||
+    text.includes('булоч') ||
+    text.includes('vypech') ||
+    text.includes('выпеч') ||
+    text.includes('pekarn') ||
+    text.includes('пекарн') ||
+    text.includes('lavash') ||
+    text.includes('лаваш') ||
+    text.includes('lepeshk') ||
+    text.includes('лепешк')
+  ) {
+    return '#FDE6D2';
+  }
+
+  // 8. Готовая еда (кулинария, салаты, фастфуд, мангал): #FEE8CE (теплый абрикосово-кремовый)
+  if (
+    text.includes('gotov') ||
+    text.includes('готов') ||
+    text.includes('kulinari') ||
+    text.includes('кулинар') ||
+    text.includes('salat') ||
+    text.includes('салат') ||
+    text.includes('mangal') ||
+    text.includes('мангал') ||
+    text.includes('fastfud') ||
+    text.includes('фастфуд') ||
+    text.includes('khychin') ||
+    text.includes('хычин') ||
+    text.includes('pirog') ||
+    text.includes('пирог') ||
+    text.includes('solen') ||
+    text.includes('солень') ||
+    text.includes('bliuda') ||
+    text.includes('блюд')
+  ) {
+    return '#FEE8CE';
+  }
+
+  // 9. Овощи, фрукты, зелень: #D4F2A3 (свежий салатовый)
+  if (
+    text.includes('ovosh') ||
+    text.includes('овощ') ||
+    text.includes('frukt') ||
+    text.includes('фрукт') ||
+    text.includes('zelen') ||
+    text.includes('зелен') ||
+    text.includes('grib') ||
+    text.includes('гриб') ||
+    text.includes('iagod') ||
+    text.includes('ягод') ||
+    text.includes('suhofrukt') ||
+    text.includes('сухофрукт')
+  ) {
+    return '#D4F2A3';
+  }
+
+  // 10. Мясо, птица, колбасы: #FDDCD7 (лососево-розовый)
+  if (
+    text.includes('mias') ||
+    text.includes('мясо') ||
+    text.includes('мясн') ||
+    text.includes('ptic') ||
+    text.includes('птиц') ||
+    text.includes('kolbas') ||
+    text.includes('колбас') ||
+    text.includes('sosisk') ||
+    text.includes('сосиск') ||
+    text.includes('krolik') ||
+    text.includes('кролик') ||
+    text.includes('holodec') ||
+    text.includes('холодец')
+  ) {
+    return '#FDDCD7';
+  }
+
+  // 11. Рыба и морепродукты: #CCF2EE (морская мята)
+  if (
+    text.includes('ryb') ||
+    text.includes('рыб') ||
+    text.includes('moreprodukt') ||
+    text.includes('морепродукт') ||
+    text.includes('ikra') ||
+    text.includes('икра')
+  ) {
+    return '#CCF2EE';
+  }
+
+  // 12. Сладкое, торты, конфеты: #FCE1ED (розовый зефир)
+  if (
+    text.includes('sladk') ||
+    text.includes('сладк') ||
+    text.includes('tort') ||
+    text.includes('торт') ||
+    text.includes('konfet') ||
+    text.includes('конфет') ||
+    text.includes('shokolad') ||
+    text.includes('шоколад') ||
+    text.includes('desert') ||
+    text.includes('десерт') ||
+    text.includes('pechen') ||
+    text.includes('печень') ||
+    text.includes('med') ||
+    text.includes('мёд') ||
+    text.includes('мед') ||
+    text.includes('varen') ||
+    text.includes('варень') ||
+    text.includes('zefir') ||
+    text.includes('зефир') ||
+    text.includes('ledenc') ||
+    text.includes('леденц')
+  ) {
+    return '#FCE1ED';
+  }
+
+  // 13. Заморозка, мороженое: #D0F0FD (ледяной голубой)
+  if (
+    text.includes('zamoroz') ||
+    text.includes('замороз') ||
+    text.includes('morozhen') ||
+    text.includes('морожен') ||
+    text.includes('pelmen') ||
+    text.includes('пельмен') ||
+    text.includes('varenik') ||
+    text.includes('вареник') ||
+    text.includes('mant') ||
+    text.includes('мант') ||
+    text.includes('testo') ||
+    text.includes('тесто') ||
+    text.includes('galushk') ||
+    text.includes('галушк') ||
+    text.includes('blin') ||
+    text.includes('блин') ||
+    text.includes('cheburek') ||
+    text.includes('чебурек')
+  ) {
+    return '#D0F0FD';
+  }
+
+  // 14. Вода, соки, напитки: #CEE5FD (пастельный васильковый)
+  if (
+    text.includes('voda') ||
+    text.includes('вод') ||
+    text.includes('sok') ||
+    text.includes('сок') ||
+    text.includes('napitk') ||
+    text.includes('напитк') ||
+    text.includes('mors') ||
+    text.includes('морс')
+  ) {
+    return '#CEE5FD';
+  }
+
+  // 15. Чай, кофе, какао: #EFE4D6 (кофейно-молочный беж)
+  if (
+    text.includes('cai') ||
+    text.includes('chay') ||
+    text.includes('чай') ||
+    text.includes('kofe') ||
+    text.includes('кофе') ||
+    text.includes('kakao') ||
+    text.includes('какао') ||
+    text.includes('cikor') ||
+    text.includes('цикорий') ||
+    text.includes('kisel') ||
+    text.includes('кисель')
+  ) {
+    return '#EFE4D6';
+  }
+
+  // 16. Снеки, чипсы: #FEE5C2 (теплый персиковый)
+  if (
+    text.includes('snek') ||
+    text.includes('снек') ||
+    text.includes('cips') ||
+    text.includes('chips') ||
+    text.includes('чипс') ||
+    text.includes('suharik') ||
+    text.includes('сухарик') ||
+    text.includes('popkorn') ||
+    text.includes('попкорн') ||
+    text.includes('kukuruz') ||
+    text.includes('кукуруз') ||
+    text.includes('oreh') ||
+    text.includes('орех') ||
+    text.includes('semech') ||
+    text.includes('семеч') ||
+    text.includes('arahis') ||
+    text.includes('арахис')
+  ) {
+    return '#FEE5C2';
+  }
+
+  // 17. Бакалея, макароны, консервы, масло: #FEF2BF (сливочно-желтый)
+  if (
+    text.includes('bakale') ||
+    text.includes('бакале') ||
+    text.includes('makaron') ||
+    text.includes('макарон') ||
+    text.includes('krup') ||
+    text.includes('круп') ||
+    text.includes('garnir') ||
+    text.includes('гарнир') ||
+    text.includes('konserv') ||
+    text.includes('консерв') ||
+    text.includes('maslo') ||
+    text.includes('масло') ||
+    text.includes('sous') ||
+    text.includes('соус') ||
+    text.includes('maionez') ||
+    text.includes('майонез') ||
+    text.includes('muka') ||
+    text.includes('мука') ||
+    text.includes('sahar') ||
+    text.includes('сахар') ||
+    text.includes('speci') ||
+    text.includes('специ') ||
+    text.includes('zavtrak') ||
+    text.includes('завтрак') ||
+    text.includes('kash') ||
+    text.includes('каш') ||
+    text.includes('xlop') ||
+    text.includes('хлопь')
+  ) {
+    return '#FEF2BF';
+  }
+
+  // Дефолтный фон для прочих категорий: #F6EEE3 (мягкий нейтральный крем)
+  return '#F6EEE3';
+}
