@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { ArrowRight, MapPin, ChevronRight, LayoutGrid } from 'lucide-react';
+import { ArrowRight, MapPin, ChevronRight, LayoutGrid, FolderOpen } from 'lucide-react';
 import { api, publicApi, selectedStore, ApiError } from '@/lib/upstream';
 import {
   list,
@@ -12,6 +12,7 @@ import {
   BannerDto,
   StoryDto,
   Product,
+  getCategoryGroupColor,
 } from '@/lib/types';
 import { content } from '@/config/content';
 import { Photo, Empty } from '@/components/ui';
@@ -22,25 +23,9 @@ import { Reviews } from './account/reviews/reviews-view';
 import { InteractiveCategorySection } from '@/components/interactive-category-section';
 import { CategoryFallback } from '@/components/category-fallback';
 
-export function getCategoryGroupColor(category: Category | string): string {
-  const slug = typeof category === 'string' ? category : (category.slug || '').toLowerCase();
-  const name = typeof category === 'string' ? category : (category.name || '').toLowerCase();
+export { getCategoryGroupColor };
 
-  if (slug.includes('gotov') || name.includes('готов')) return '#fbf6ec';
-  if (slug.includes('xleb') || slug.includes('buloc') || name.includes('хлеб') || name.includes('выпеч') || name.includes('булоч')) return '#fbf6ec';
-  if (slug.includes('ovosh') || slug.includes('frukt') || name.includes('овощ') || name.includes('фрукт')) return '#eaf2eb';
-  if (slug.includes('mias') || slug.includes('ptic') || slug.includes('kolbas') || name.includes('мясо') || name.includes('птиц') || name.includes('колбас')) return '#fdede7';
-  if (slug.includes('ryb') || slug.includes('moreprodukt') || name.includes('рыб') || name.includes('морепродукт')) return '#edf4f8';
-  if (slug.includes('moloc') || name.includes('молоч') || name.includes('сыр')) return '#f5f6f0';
-  if (slug.includes('sladk') || slug.includes('tort') || name.includes('сладк') || name.includes('торт')) return '#fbf0f4';
-  if (slug.includes('zamoroz') || name.includes('замороз') || name.includes('морожен')) return '#ebf5f9';
-  if (slug.includes('voda') || slug.includes('napitk') || name.includes('вод') || name.includes('напитк')) return '#eaf4f8';
-  if (slug.includes('bakale') || name.includes('бакале')) return '#f8f4ea';
-  if (slug.includes('cai') || slug.includes('kofe') || name.includes('чай') || name.includes('кофе')) return '#f5eeeb';
-  if (slug.includes('cips') || slug.includes('snek') || name.includes('чипс') || name.includes('снек')) return '#faf2e8';
 
-  return '#fbf6ec';
-}
 
 export function SectionHeading({
   title,
@@ -122,67 +107,69 @@ export async function Home() {
         <LoyaltyCard compact />
       </section>
 
-      {stories.length > 0 && (
-        <div className="stories">
-          {stories.map((st) => (
-            <Link href={'/stories/' + st.id} key={st.id}>
-              <Photo src={st.image?.path || st.preview?.path} alt={st.title} />
-              <span>{st.title}</span>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* Featured promo collections on Home */}
-      {recommended.length > 0 && (
-        <section>
-          <SectionHeading title={content.home.titles.collections} subtitle="Собрали для вас" />
-          <div className="collections">
-            {recommended.map((g, i) => (
-              <Link
-                key={g.id}
-                href={'/collection/' + g.slug}
-                className={`collection-tile tone-${i % 5}`}
-              >
-                <Photo src={g.image?.path} alt="" />
-                <strong>{g.title}</strong>
-                <span className="tile-arrow">
-                  <ArrowRight size={18} />
-                </span>
+      <div className="home-sheet">
+        {stories.length > 0 && (
+          <div className="stories">
+            {stories.map((st) => (
+              <Link href={'/stories/' + st.id} key={st.id}>
+                <Photo src={st.image?.path || st.preview?.path} alt={st.title} />
+                <span>{st.title}</span>
               </Link>
             ))}
           </div>
-        </section>
-      )}
+        )}
 
-      {featuredProducts.length > 0 && (
-        <section>
-          <SectionHeading
-            title={featured?.title || 'Хиты продаж'}
-            href={'/collection/' + featured?.slug}
-            subtitle="Приготовлено с заботой"
-          />
-          <ProductCarousel products={featuredProducts} />
-        </section>
-      )}
+        {/* Featured promo collections on Home */}
+        {recommended.length > 0 && (
+          <section className="home-collections-section">
+            <SectionHeading title={content.home.titles.collections} />
+            <div className="collections">
+              {recommended.map((g, i) => (
+                <Link
+                  key={g.id}
+                  href={'/collection/' + g.slug}
+                  className={`collection-tile tone-${i % 5}`}
+                >
+                  <Photo src={g.image?.path} alt="" />
+                  <strong>{g.title}</strong>
+                  <span className="tile-arrow">
+                    <ArrowRight size={18} />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
-      {/* Compact catalog navigation hint */}
-      <section className="catalog-hint-section">
-        <div className="catalog-hint-card">
-          <div className="catalog-hint-info">
-            <div className="catalog-hint-badge">
-              <LayoutGrid size={24} />
+        {featuredProducts.length > 0 && (
+          <section>
+            <SectionHeading
+              title={featured?.title || 'Хиты продаж'}
+              href={'/collection/' + featured?.slug}
+              subtitle="Приготовлено с заботой"
+            />
+            <ProductCarousel products={featuredProducts} />
+          </section>
+        )}
+
+        {/* Compact catalog navigation hint */}
+        <section className="catalog-hint-section">
+          <div className="catalog-hint-card">
+            <div className="catalog-hint-info">
+              <div className="catalog-hint-badge">
+                <LayoutGrid size={24} />
+              </div>
+              <div>
+                <h3>Каталог всех товаров</h3>
+                <p>Готовая кулинария, свежая выпечка, фермерские продукты и напитки</p>
+              </div>
             </div>
-            <div>
-              <h3>Каталог всех товаров</h3>
-              <p>Готовая кулинария, свежая выпечка, фермерские продукты и напитки</p>
-            </div>
+            <Link href="/catalog" className="catalog-hint-button">
+              Открыть каталог <ArrowRight size={18} />
+            </Link>
           </div>
-          <Link href="/catalog" className="catalog-hint-button">
-            Открыть каталог <ArrowRight size={18} />
-          </Link>
-        </div>
-      </section>
+        </section>
+      </div>
     </>
   );
 }
@@ -463,11 +450,13 @@ export async function Catalog({
       <div className="page-heading">
         <div>
           <h1>{title}</h1>
-          {activeChild && <h2 className="active-sub-heading">{activeChild.name}</h2>}
         </div>
-        {typeof data.total === 'number' && (
-          <span className="muted total-count-badge">{data.total.toLocaleString('ru-RU')} товаров</span>
-        )}
+        <div className="page-heading-actions">
+          {typeof data.total === 'number' && (
+            <span className="muted total-count-badge">{data.total.toLocaleString('ru-RU')} товаров</span>
+          )}
+          <Filters filters={unwrap(filters)} />
+        </div>
       </div>
 
       {/* Horizontal Pills (Chips) Bar for Subcategories - just like the mobile app! */}
@@ -493,18 +482,31 @@ export async function Catalog({
 
       {/* Main Catalog Layout with Desktop Sidebar and Dense Products Grid */}
       <div className="catalog-layout">
-        <Filters
-          filters={unwrap(filters)}
-          subcategories={
-            children.length > 0 && currentCategory
-              ? {
-                  items: children,
-                  activeId: activeChild?.slug || activeChild?.id,
-                  parentSlug: currentCategory.slug,
-                }
-              : undefined
-          }
-        />
+        {children.length > 0 && currentCategory && (
+          <aside className="filters-desktop">
+            <div className="sidebar-subcategories">
+              <div className="sidebar-subcategories-header">
+                <FolderOpen size={16} />
+                <h4>Подразделы</h4>
+              </div>
+              <nav className="sidebar-subcategories-list">
+                {children.map((child) => {
+                  const isActive =
+                    activeChild && (activeChild.id === child.id || activeChild.slug === child.slug);
+                  return (
+                    <Link
+                      key={child.id}
+                      href={`/category/${currentCategory.slug}?sub=${child.slug || child.id}`}
+                      className={`sidebar-subcategory-link ${isActive ? 'active' : ''}`}
+                    >
+                      <span>{child.name}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          </aside>
+        )}
         <div className="catalog-main">
           {products.length ? (
             <ProductGrid products={products} />

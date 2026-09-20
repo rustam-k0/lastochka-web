@@ -163,8 +163,8 @@ export function Header({ store }: { store: Store | null }) {
           <button className="location" onClick={openStorePicker} type="button">
             <MapPin size={21} />
             <span>
-              <small>Магазин каталога</small>
-              {store?.name || 'Выбрать магазин'}
+              <small className="location-subtitle">Магазин каталога</small>
+              <strong className="location-name">{store?.name || 'Выбрать магазин'}</strong>
             </span>
             <ChevronDown size={15} />
           </button>
