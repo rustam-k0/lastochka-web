@@ -33,6 +33,7 @@ import { useShop } from './shop-context';
 import { request } from '@/lib/client';
 import { list, money, Store, CartItem, product, type Address } from '@/lib/types';
 import { Modal, Photo } from './ui';
+import { HomeBrandLink } from './home-brand-link';
 
 function getInnerScreenTitle(path: string): string | null {
   if (path === '/profile') return 'Профиль';
@@ -199,12 +200,11 @@ export function Header({ store }: { store: Store | null }) {
         )}
 
         <div className="container header-row">
-          <Link href="/" className="brand">
-            <img src="/images/logo.webp" alt="Ласточка" width={46} height={46} />
+          <HomeBrandLink className="brand" imageSize={46}>
             <span>
               Ласточка<small>Джами</small>
             </span>
-          </Link>
+          </HomeBrandLink>
 
           <Link className="catalog-button" href="/catalog">
             <Menu size={20} /> Каталог
