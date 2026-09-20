@@ -40,11 +40,21 @@ export async function generateMetadata({
 
 export const revalidate = 60;
 
+import { notFound } from 'next/navigation';
+
 export default async function ProductRoute({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return await ProductPage({ id });
+  try {
+    return await ProductPage({ id });
+  } catch (err: any) {
+    if (err?.status === 404 || err?.statusCode === 404) {
+      notFound();
+    }
+    throw err;
+  }
 }
+

@@ -34,6 +34,8 @@ export async function generateMetadata({
 
 export const revalidate = 60;
 
+import { notFound } from 'next/navigation';
+
 export default async function CategoryRoute({
   params,
   searchParams,
@@ -43,5 +45,13 @@ export default async function CategoryRoute({
 }) {
   const { slug } = await params;
   const query = await searchParams;
-  return await Catalog({ kind: 'category', id: slug, params: query });
+  try {
+    return await Catalog({ kind: 'category', id: slug, params: query });
+  } catch (err: any) {
+    if (err?.status === 404 || err?.statusCode === 404) {
+      notFound();
+    }
+    throw err;
+  }
 }
+
