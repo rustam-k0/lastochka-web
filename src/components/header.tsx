@@ -18,7 +18,9 @@ import {
   ChevronRight,
   ArrowRight,
   Trash2,
+  ScanLine,
 } from 'lucide-react';
+import { BarcodeScannerModal } from './barcode-scanner-modal';
 import { useShop } from './shop-context';
 import { request } from '@/lib/client';
 import { list, money, cartChange, Store, CartItem, product } from '@/lib/types';
@@ -46,6 +48,7 @@ export function Header({ store }: { store: Store | null }) {
   const path = usePathname();
 
   const [chooseStoreOpen, setChooseStoreOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [stores, setStores] = useState<Store[]>([]);
   const [busy, setBusy] = useState(false);
   const [cartPreviewOpen, setCartPreviewOpen] = useState(false);
@@ -158,7 +161,7 @@ export function Header({ store }: { store: Store | null }) {
             <Menu size={20} /> Каталог
           </Link>
 
-          <SearchBox />
+          <SearchBox onOpenScanner={() => setScannerOpen(true)} />
 
           <button className="location" onClick={openStorePicker} type="button">
             <MapPin size={21} />
@@ -291,6 +294,18 @@ export function Header({ store }: { store: Store | null }) {
       </nav>
 
       <div className={`float-actions ${path === '/cart' ? 'on-cart' : ''}`} aria-label="Быстрые действия">
+        {path.startsWith('/catalog') && (
+          <button
+            type="button"
+            className="float-barcode-btn"
+            onClick={() => setScannerOpen(true)}
+            aria-label="Сканировать штрихкод"
+            title="Сканировать штрихкод"
+          >
+            <ScanLine size={18} />
+            <span>Сканер</span>
+          </button>
+        )}
         <Link className="float-search-btn" href="/search" aria-label="Поиск товаров">
           <Search size={18} /><span>Поиск</span>
         </Link>
@@ -333,11 +348,16 @@ export function Header({ store }: { store: Store | null }) {
           </div>
         </Modal>
       )}
+
+      <BarcodeScannerModal
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+      />
     </>
   );
 }
 
-export function SearchBox() {
+export function SearchBox({ onOpenScanner }: { onOpenScanner?: () => void } = {}) {
   const router = useRouter();
   const listboxId = useId();
   const [q, setQ] = useState('');
@@ -425,6 +445,17 @@ export function SearchBox() {
         }}
         minLength={2}
       />
+      {onOpenScanner && (
+        <button
+          type="button"
+          className="search-barcode-btn"
+          onClick={onOpenScanner}
+          aria-label="Сканировать штрихкод"
+          title="Сканировать штрихкод"
+        >
+          <ScanLine size={19} />
+        </button>
+      )}
       <button aria-label="Найти" type="submit">
         →
       </button>
