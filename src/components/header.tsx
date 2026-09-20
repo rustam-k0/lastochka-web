@@ -124,8 +124,8 @@ export function Header({ store }: { store: Store | null }) {
 
       <header
         className={`header ${innerTitle ? 'header-has-app-bar' : ''} ${
-          path === '/' ? 'header-home-peach' : ''
-        }`}
+          path === '/cart' ? 'header-on-cart' : ''
+        } ${path === '/' ? 'header-home-peach' : ''}`}
       >
         {/* Contextual Mobile App Bar on inner screens */}
         {innerTitle && (
@@ -163,13 +163,17 @@ export function Header({ store }: { store: Store | null }) {
 
           <SearchBox onOpenScanner={() => setScannerOpen(true)} />
 
-          <button className="location" onClick={openStorePicker} type="button">
-            <MapPin size={21} />
+          <button className="location" onClick={openStorePicker} type="button" aria-label="Выбор адреса и магазина доставки">
+            <MapPin size={20} className="location-pin-icon" />
             <span>
-              <small className="location-subtitle">Магазин каталога</small>
-              <strong className="location-name">{store?.name || 'Выбрать магазин'}</strong>
+              <small className="location-subtitle">Доставка</small>
+              <strong className="location-name">
+                {!store || store.name === 'default'
+                  ? 'Нальчик'
+                  : store.name}
+              </strong>
             </span>
-            <ChevronDown size={15} />
+            <ChevronDown size={14} className="location-chevron" />
           </button>
 
           <Link className="header-action" href="/profile">
@@ -293,27 +297,15 @@ export function Header({ store }: { store: Store | null }) {
         ))}
       </nav>
 
-      <div className={`float-actions ${path === '/cart' ? 'on-cart' : ''}`} aria-label="Быстрые действия">
-        {path.startsWith('/catalog') && (
-          <button
-            type="button"
-            className="float-barcode-btn"
-            onClick={() => setScannerOpen(true)}
-            aria-label="Сканировать штрихкод"
-            title="Сканировать штрихкод"
-          >
-            <ScanLine size={18} />
-            <span>Сканер</span>
-          </button>
-        )}
-        <Link className="float-search-btn" href="/search" aria-label="Поиск товаров">
-          <Search size={18} /><span>Поиск</span>
-        </Link>
-        <Link className="float-cart-btn" href="/cart" aria-label="Открыть корзину">
-          <ShoppingBasket size={18} />
-          <span>{typeof total === 'number' && total > 0 ? money(total) : '0 ₽'}</span>
-        </Link>
-      </div>
+      {/* Floating Cart Pill on Mobile (only if cart has items and not on /cart page) */}
+      {items.length > 0 && path !== '/cart' && (
+        <div className="float-actions" aria-label="Быстрые действия">
+          <Link className="float-cart-btn" href="/cart" aria-label="Открыть корзину">
+            <ShoppingBasket size={19} />
+            <span>{typeof total === 'number' && total > 0 ? money(total) : 'Корзина'}</span>
+          </Link>
+        </div>
+      )}
 
       {chooseStoreOpen && (
         <Modal title="Выбор магазина" onClose={() => setChooseStoreOpen(false)}>
@@ -359,11 +351,19 @@ export function Header({ store }: { store: Store | null }) {
 
 export function SearchBox({ onOpenScanner }: { onOpenScanner?: () => void } = {}) {
   const router = useRouter();
+  const pathname = usePathname();
   const listboxId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [placeholder, setPlaceholder] = useState('Искать товары...');
+
+  useEffect(() => {
+    if (pathname === '/search' && !q) {
+      inputRef.current?.focus();
+    }
+  }, [pathname]);
 
   useEffect(() => {
     const updatePlaceholder = () => {
@@ -410,6 +410,7 @@ export function SearchBox({ onOpenScanner }: { onOpenScanner?: () => void } = {}
     >
       <Search size={20} className="search-icon" />
       <input
+        ref={inputRef}
         name="query"
         aria-label="Поиск товаров"
         role="combobox"
@@ -453,11 +454,11 @@ export function SearchBox({ onOpenScanner }: { onOpenScanner?: () => void } = {}
           aria-label="Сканировать штрихкод"
           title="Сканировать штрихкод"
         >
-          <ScanLine size={19} />
+          <ScanLine size={18} />
         </button>
       )}
-      <button aria-label="Найти" type="submit">
-        →
+      <button className="search-submit-btn" aria-label="Найти" type="submit">
+        <ArrowRight size={17} />
       </button>
       {suggestions.length > 0 && (
         <div className="suggestions" id={listboxId} role="listbox" aria-label="Подсказки поиска">

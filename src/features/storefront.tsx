@@ -250,7 +250,7 @@ async function CatalogCategorySection({ store, category }: { store: number; cate
     .then(list<Category>)
     .catch(() => [] as Category[]);
 
-  const tilesToRender = children.length ? children : (category.isLeaf ? [category] : []);
+  const tilesToRender = children.length ? children : [category];
 
   if (!tilesToRender.length) {
     return null;
@@ -267,6 +267,23 @@ async function CatalogCategorySection({ store, category }: { store: number; cate
 }
 
 function RootCatalog({ store, categories }: { store: number; categories: Category[] }) {
+  if (!categories || categories.length === 0) {
+    return (
+      <div className="catalog-sections">
+        <section className="catalog-category-section category-loading">
+          <div className="section-heading">
+            <h2>Каталог продуктов</h2>
+          </div>
+          <div className="category-tiles" aria-hidden="true">
+            {Array.from({ length: 8 }, (_, i) => (
+              <span key={i} className="category-tile-skeleton" />
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="catalog-sections">
       {categories.map((category) => (
@@ -348,19 +365,12 @@ export async function Catalog({
     if (typeof params.query !== 'string' || params.query.trim().length < 2) {
       return (
         <>
-          <h1>{title}</h1>
-          <form className="large-search" action="/search">
-            <input
-              name="query"
-              placeholder="Например, молоко или сыр"
-              minLength={2}
-              required
-              aria-label="Поиск"
-            />
-            <button className="primary" type="submit">
-              Найти
-            </button>
-          </form>
+          <div className="page-heading">
+            <div>
+              <h1>{title}</h1>
+              <p className="muted">Введите название товара в строке поиска выше или выберите нужный раздел</p>
+            </div>
+          </div>
           <CategoryTiles categories={categories} />
         </>
       );

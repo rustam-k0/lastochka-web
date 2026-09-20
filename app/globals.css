@@ -124,10 +124,30 @@ section { margin-block: clamp(36px, 6vw, 76px); }
 .cart-button span, .header-action { display: flex; align-items: center; gap: 7px; }
 .cart-button small { padding: 2px 6px; border-radius: 999px; background: var(--brand); color: white; font-size: 11px; }
 .header-action { flex-direction: column; justify-content: center; min-width: 52px; font-size: 12px; flex-shrink: 0; }
-.location { max-width: 155px; border: 0; display: flex; align-items: center; gap: 8px; background: none; text-align: left; flex-shrink: 0; min-width: 0; }
+.location {
+  max-width: 170px;
+  border: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-soft);
+  padding: 6px 12px;
+  border-radius: 999px;
+  text-align: left;
+  flex-shrink: 0;
+  min-width: 0;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.location:hover {
+  background: var(--brand-pale);
+  transform: translateY(-1px);
+}
+.location-pin-icon { color: var(--brand); flex-shrink: 0; }
+.location-chevron { color: var(--muted); flex-shrink: 0; }
 .location span { min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.location small, .location-subtitle { display: block; color: var(--muted); font-size: 10px; line-height: 1.2; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-.location strong, .location-name { display: block; font-size: 13px; font-weight: 600; line-height: 1.2; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.location small, .location-subtitle { display: block; color: var(--muted); font-size: 10px; font-weight: 500; line-height: 1.1; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.location strong, .location-name { display: block; font-size: 13px; font-weight: 650; color: var(--ink); line-height: 1.2; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
 .search-box {
   position: relative;
   height: 46px;
@@ -154,17 +174,26 @@ section { margin-block: clamp(36px, 6vw, 76px); }
   padding: 0;
   text-overflow: ellipsis;
 }
-.search-box > button {
+.search-submit-btn {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border: 0;
   border-radius: 50%;
-  background: var(--ink);
-  color: white;
+  background: var(--brand-pale);
+  color: var(--brand);
   display: grid;
   place-items: center;
-  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.search-submit-btn:hover {
+  background: var(--brand);
+  color: white;
+  transform: scale(1.05);
+}
+@media (min-width: 769px) {
+  .search-barcode-btn { display: none !important; }
 }
 .search-icon { flex-shrink: 0; color: #8e8e93; }
 .suggestions { position: absolute; z-index: 70; top: calc(100% + 8px); left: 0; right: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: white; box-shadow: var(--shadow); }
@@ -2599,12 +2628,32 @@ dialog.modal[open] {
     height: 100%;
     line-height: normal;
   }
-  .search-box > button {
+  .search-submit-btn {
     display: none !important;
+  }
+  .search-barcode-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--muted, #8e8e93);
+    padding: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
   }
 
   .cart-button { width: 42px; min-height: 42px; padding: 0; }
   .cart-button span { display: none; }
+
+  /* Full cleanup on /cart page for mobile */
+  .header-on-cart {
+    display: none !important;
+  }
+  .header-on-cart + main,
+  .header-on-cart ~ main {
+    padding-top: 10px !important;
+  }
 
   /* Contextual Mobile App Bar */
   .header-has-app-bar .header-row,
@@ -2691,36 +2740,16 @@ dialog.modal[open] {
   .bottom-nav a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #555; font-size: 10px; font-weight: 500; }
   .bottom-nav .active { color: var(--brand); font-weight: 700; }
 
-  /* Floating action pills */
+  /* Floating action pills: Clean, elegant single cart pill without cluttering the screen */
   .float-actions {
     position: fixed;
     z-index: 85;
     right: 14px;
-    left: 14px;
     bottom: calc(var(--bottom-nav-height, 62px) + var(--safe-bottom) + 12px);
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     pointer-events: none;
-  }
-  .float-search-btn {
-    pointer-events: auto;
-    min-width: 96px;
-    min-height: 44px;
-    padding: 0 16px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    border-radius: 999px;
-    background: var(--float-search-bg, rgba(38, 38, 38, 0.88));
-    color: #ffffff;
-    font-size: 13.5px;
-    font-weight: 650;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    text-decoration: none;
   }
   .float-cart-btn {
     pointer-events: auto;
@@ -2730,16 +2759,16 @@ dialog.modal[open] {
     align-items: center;
     gap: 8px;
     border-radius: 999px;
-    background: var(--brand-peach, #fcdfdc);
-    color: var(--cart-pill-color, #1a1a1a);
+    background: var(--brand, #e52b2b);
+    color: #ffffff;
     font-size: 14px;
     font-weight: 750;
-    box-shadow: 0 4px 16px rgba(244, 159, 149, 0.45);
+    box-shadow: 0 4px 16px rgba(229, 43, 43, 0.35);
     text-decoration: none;
     transition: transform .15s ease;
   }
   .float-cart-btn svg {
-    color: var(--brand, #e52b2b);
+    color: #ffffff;
   }
   .float-cart-btn:active {
     transform: scale(.96);
